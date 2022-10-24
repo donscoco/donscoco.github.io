@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://donscoco.github.io/2018/01/30/Process&&Thread/</loc>
+    <loc>http://example.com/2018/01/30/Process&&Thread/</loc>
     
     <lastmod>2022-10-24</lastmod>
     
@@ -11,7 +11,7 @@
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/categories/index.html</loc>
+    <loc>http://example.com/categories/index.html</loc>
     
     <lastmod>2022-10-24</lastmod>
     
@@ -20,7 +20,7 @@
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/2016/10/25/HTTP/</loc>
+    <loc>http://example.com/2016/10/25/HTTP/</loc>
     
     <lastmod>2022-10-24</lastmod>
     
@@ -29,7 +29,7 @@
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/tags/index.html</loc>
+    <loc>http://example.com/tags/index.html</loc>
     
     <lastmod>2022-10-23</lastmod>
     
@@ -38,7 +38,7 @@
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/about/index-1.html</loc>
+    <loc>http://example.com/about/index-1.html</loc>
     
     <lastmod>2022-10-23</lastmod>
     
@@ -47,7 +47,7 @@
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/about/index.html</loc>
+    <loc>http://example.com/about/index.html</loc>
     
     <lastmod>2022-10-23</lastmod>
     
@@ -57,7 +57,7 @@
   
 
   <url>
-    <loc>https://donscoco.github.io/</loc>
+    <loc>http://example.com/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -65,35 +65,35 @@
 
   
   <url>
-    <loc>https://donscoco.github.io/tags/process/</loc>
+    <loc>http://example.com/tags/process/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/tags/thread/</loc>
+    <loc>http://example.com/tags/thread/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/tags/HTTP/</loc>
+    <loc>http://example.com/tags/HTTP/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/tags/HTTPS/</loc>
+    <loc>http://example.com/tags/HTTPS/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/tags/HTTP2/</loc>
+    <loc>http://example.com/tags/HTTP2/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -102,14 +102,14 @@
 
   
   <url>
-    <loc>https://donscoco.github.io/categories/Protocol/</loc>
+    <loc>http://example.com/categories/Protocol/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://donscoco.github.io/categories/OS/</loc>
+    <loc>http://example.com/categories/OS/</loc>
     <lastmod>2022-10-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>

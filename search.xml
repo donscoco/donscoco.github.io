@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>Thread and Process</title>
-    <url>/donscoco.github.io/2018/01/30/Process&amp;&amp;Thread/</url>
+    <url>/2018/01/30/Process&amp;&amp;Thread/</url>
     <content><![CDATA[<p>Key difference: Thread and Process are two closely related terms in multi-threading. The main difference between the two terms is that the threads are a part of a process.<br>i.e. a process may contain one or more threads, but a thread cannot contain a process.</p>
 <p>In programming, there are two basic units of execution: processes and threads. They both execute a series of instructions. Both are initiated by a program or the operating system. This article helps to differentiate between the two units.</p>
 <p>A process is an instance of a program that is being executed. It contains the program code and its current activity. Depending on the operating system, a process may be made up of multiple threads of execution that execute instructions concurrently. A program is a collection of instructions; a process is the actual execution of those instructions.</p>
@@ -97,7 +97,7 @@
   </entry>
   <entry>
     <title>HTTP protocol</title>
-    <url>/donscoco.github.io/2016/10/25/HTTP/</url>
+    <url>/2016/10/25/HTTP/</url>
     <content><![CDATA[<h3 id="名词解析"><a href="#名词解析" class="headerlink" title="名词解析"></a>名词解析</h3><hr>
 <ul>
 <li><em><strong>URI</strong></em>  :(uniform resource identifier) 统一资源定位符；用来标识互联网上的唯一资源</li>
