@@ -1,103 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Thread and Process</title>
-    <url>/2018/01/30/Process&amp;&amp;Thread/</url>
-    <content><![CDATA[<p>Key difference: Thread and Process are two closely related terms in multi-threading. The main difference between the two terms is that the threads are a part of a process.<br>i.e. a process may contain one or more threads, but a thread cannot contain a process.</p>
-<p>In programming, there are two basic units of execution: processes and threads. They both execute a series of instructions. Both are initiated by a program or the operating system. This article helps to differentiate between the two units.</p>
-<p>A process is an instance of a program that is being executed. It contains the program code and its current activity. Depending on the operating system, a process may be made up of multiple threads of execution that execute instructions concurrently. A program is a collection of instructions; a process is the actual execution of those instructions.</p>
-<p>A process has a self-contained execution environment. It has a complete set of private basic run-time resources; in particular, each process has its own memory space. Processes are often considered similar to other programs or applications. However, the running of a single application may in fact be a set of cooperating processes. To facilitate communication between the processes, most operating systems use Inter Process Communication (IPC) resources, such as pipes and sockets. The IPC resources can also be used for communication between processes on different systems. Most applications in a virtual machine run as a single process. However, it can create additional processes using a process builder object.</p>
-<p>In computers, a thread can execute even the smallest sequence of programmed instructions that can be managed independently by an operating system. The applications of threads and processes differ from one operating system to another. However, the threads are made of and exist within a process; every process has at least one. Multiple threads can also exist in a process and share resources, which helps in efficient communication between threads.</p>
-<p>On a single processor, multitasking takes place as the processor switches between different threads; it is known as multithreading. The switching happens so frequently that the threads or tasks are perceived to be running at the same time. Threads can truly be concurrent on a multiprocessor or multi-core system, with every processor or core executing the separate threads simultaneously.</p>
-<p>In summary, threads may be considered lightweight processes, as they contain simple sets of instructions and can run within a larger process. Computers can run multiple threads and processes at the same time.</p>
-<p>Comparison between Process and Thread:</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th><strong>Process</strong></th>
-<th><strong>Thread</strong></th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Definition</td>
-<td>An executing instance of a program is called a process.</td>
-<td>A thread is a subset of the process.</td>
-</tr>
-<tr>
-<td>Process</td>
-<td>It has its own copy of the data segment of the parent process.</td>
-<td>It has direct access to the data segment of its process.</td>
-</tr>
-<tr>
-<td>Communication</td>
-<td>Processes must use inter-process communication to communicate with sibling processes.</td>
-<td>Threads can directly communicate with other threads of its process.</td>
-</tr>
-<tr>
-<td>Overheads</td>
-<td>Processes have considerable overhead.</td>
-<td>Threads have almost no overhead.</td>
-</tr>
-<tr>
-<td>Creation</td>
-<td>New processes require duplication of the parent process.</td>
-<td>New threads are easily created.</td>
-</tr>
-<tr>
-<td>Control</td>
-<td>Processes can only exercise control over child processes.</td>
-<td>Threads can exercise considerable control over threads of the same process.</td>
-</tr>
-<tr>
-<td>Changes</td>
-<td>Any change in the parent process does not affect child processes.</td>
-<td>Any change in the main thread may affect the behavior of the other threads of the process.</td>
-</tr>
-<tr>
-<td>Memory</td>
-<td>Run in separate memory spaces.</td>
-<td>Run in shared memory spaces.</td>
-</tr>
-<tr>
-<td>File descriptors</td>
-<td>Most file descriptors are not shared.</td>
-<td>It shares file descriptors.</td>
-</tr>
-<tr>
-<td>File system</td>
-<td>There is no sharing of file system context.</td>
-<td>It shares file system context.</td>
-</tr>
-<tr>
-<td>Signal</td>
-<td>It does not share signal handling.</td>
-<td>It shares signal handling.</td>
-</tr>
-<tr>
-<td>Controlled by</td>
-<td>Process is controlled by the operating system.</td>
-<td>Threads are controlled by programmer in a program.</td>
-</tr>
-<tr>
-<td>Dependence</td>
-<td>Processes are independent.</td>
-<td>Threads are dependent.</td>
-</tr>
-</tbody></table>
-<p><a href="http://www.differencebetween.info/difference-between-process-and-thread">http://www.differencebetween.info/difference-between-process-and-thread</a></p>
-]]></content>
-      <categories>
-        <category>OS</category>
-      </categories>
-      <tags>
-        <tag>process</tag>
-        <tag>thread</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>HTTP protocol</title>
-    <url>/2016/10/25/HTTP/</url>
+    <url>/donscoco.github.io/2016/10/25/HTTP/</url>
     <content><![CDATA[<h3 id="名词解析"><a href="#名词解析" class="headerlink" title="名词解析"></a>名词解析</h3><hr>
 <ul>
 <li><em><strong>URI</strong></em>  :(uniform resource identifier) 统一资源定位符；用来标识互联网上的唯一资源</li>
@@ -222,6 +127,101 @@
         <tag>HTTP</tag>
         <tag>HTTPS</tag>
         <tag>HTTP2</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Thread and Process</title>
+    <url>/donscoco.github.io/2018/01/30/Process&amp;&amp;Thread/</url>
+    <content><![CDATA[<p>Key difference: Thread and Process are two closely related terms in multi-threading. The main difference between the two terms is that the threads are a part of a process.<br>i.e. a process may contain one or more threads, but a thread cannot contain a process.</p>
+<p>In programming, there are two basic units of execution: processes and threads. They both execute a series of instructions. Both are initiated by a program or the operating system. This article helps to differentiate between the two units.</p>
+<p>A process is an instance of a program that is being executed. It contains the program code and its current activity. Depending on the operating system, a process may be made up of multiple threads of execution that execute instructions concurrently. A program is a collection of instructions; a process is the actual execution of those instructions.</p>
+<p>A process has a self-contained execution environment. It has a complete set of private basic run-time resources; in particular, each process has its own memory space. Processes are often considered similar to other programs or applications. However, the running of a single application may in fact be a set of cooperating processes. To facilitate communication between the processes, most operating systems use Inter Process Communication (IPC) resources, such as pipes and sockets. The IPC resources can also be used for communication between processes on different systems. Most applications in a virtual machine run as a single process. However, it can create additional processes using a process builder object.</p>
+<p>In computers, a thread can execute even the smallest sequence of programmed instructions that can be managed independently by an operating system. The applications of threads and processes differ from one operating system to another. However, the threads are made of and exist within a process; every process has at least one. Multiple threads can also exist in a process and share resources, which helps in efficient communication between threads.</p>
+<p>On a single processor, multitasking takes place as the processor switches between different threads; it is known as multithreading. The switching happens so frequently that the threads or tasks are perceived to be running at the same time. Threads can truly be concurrent on a multiprocessor or multi-core system, with every processor or core executing the separate threads simultaneously.</p>
+<p>In summary, threads may be considered lightweight processes, as they contain simple sets of instructions and can run within a larger process. Computers can run multiple threads and processes at the same time.</p>
+<p>Comparison between Process and Thread:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Process</strong></th>
+<th><strong>Thread</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Definition</td>
+<td>An executing instance of a program is called a process.</td>
+<td>A thread is a subset of the process.</td>
+</tr>
+<tr>
+<td>Process</td>
+<td>It has its own copy of the data segment of the parent process.</td>
+<td>It has direct access to the data segment of its process.</td>
+</tr>
+<tr>
+<td>Communication</td>
+<td>Processes must use inter-process communication to communicate with sibling processes.</td>
+<td>Threads can directly communicate with other threads of its process.</td>
+</tr>
+<tr>
+<td>Overheads</td>
+<td>Processes have considerable overhead.</td>
+<td>Threads have almost no overhead.</td>
+</tr>
+<tr>
+<td>Creation</td>
+<td>New processes require duplication of the parent process.</td>
+<td>New threads are easily created.</td>
+</tr>
+<tr>
+<td>Control</td>
+<td>Processes can only exercise control over child processes.</td>
+<td>Threads can exercise considerable control over threads of the same process.</td>
+</tr>
+<tr>
+<td>Changes</td>
+<td>Any change in the parent process does not affect child processes.</td>
+<td>Any change in the main thread may affect the behavior of the other threads of the process.</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Run in separate memory spaces.</td>
+<td>Run in shared memory spaces.</td>
+</tr>
+<tr>
+<td>File descriptors</td>
+<td>Most file descriptors are not shared.</td>
+<td>It shares file descriptors.</td>
+</tr>
+<tr>
+<td>File system</td>
+<td>There is no sharing of file system context.</td>
+<td>It shares file system context.</td>
+</tr>
+<tr>
+<td>Signal</td>
+<td>It does not share signal handling.</td>
+<td>It shares signal handling.</td>
+</tr>
+<tr>
+<td>Controlled by</td>
+<td>Process is controlled by the operating system.</td>
+<td>Threads are controlled by programmer in a program.</td>
+</tr>
+<tr>
+<td>Dependence</td>
+<td>Processes are independent.</td>
+<td>Threads are dependent.</td>
+</tr>
+</tbody></table>
+<p><a href="http://www.differencebetween.info/difference-between-process-and-thread">http://www.differencebetween.info/difference-between-process-and-thread</a></p>
+]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
+      <tags>
+        <tag>process</tag>
+        <tag>thread</tag>
       </tags>
   </entry>
 </search>
