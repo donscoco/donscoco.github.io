@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Hello World</title>
+    <url>/2022/10/24/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
+  </entry>
+  <entry>
+    <title>Thread and Process</title>
+    <url>/2018/01/30/Process&amp;&amp;Thread/</url>
+    <content><![CDATA[<p>Key difference: Thread and Process are two closely related terms in multi-threading. The main difference between the two terms is that the threads are a part of a process.<br>i.e. a process may contain one or more threads, but a thread cannot contain a process.</p>
+<p>In programming, there are two basic units of execution: processes and threads. They both execute a series of instructions. Both are initiated by a program or the operating system. This article helps to differentiate between the two units.</p>
+<p>A process is an instance of a program that is being executed. It contains the program code and its current activity. Depending on the operating system, a process may be made up of multiple threads of execution that execute instructions concurrently. A program is a collection of instructions; a process is the actual execution of those instructions.</p>
+<p>A process has a self-contained execution environment. It has a complete set of private basic run-time resources; in particular, each process has its own memory space. Processes are often considered similar to other programs or applications. However, the running of a single application may in fact be a set of cooperating processes. To facilitate communication between the processes, most operating systems use Inter Process Communication (IPC) resources, such as pipes and sockets. The IPC resources can also be used for communication between processes on different systems. Most applications in a virtual machine run as a single process. However, it can create additional processes using a process builder object.</p>
+<p>In computers, a thread can execute even the smallest sequence of programmed instructions that can be managed independently by an operating system. The applications of threads and processes differ from one operating system to another. However, the threads are made of and exist within a process; every process has at least one. Multiple threads can also exist in a process and share resources, which helps in efficient communication between threads.</p>
+<p>On a single processor, multitasking takes place as the processor switches between different threads; it is known as multithreading. The switching happens so frequently that the threads or tasks are perceived to be running at the same time. Threads can truly be concurrent on a multiprocessor or multi-core system, with every processor or core executing the separate threads simultaneously.</p>
+<p>In summary, threads may be considered lightweight processes, as they contain simple sets of instructions and can run within a larger process. Computers can run multiple threads and processes at the same time.</p>
+<p>Comparison between Process and Thread:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Process</strong></th>
+<th><strong>Thread</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Definition</td>
+<td>An executing instance of a program is called a process.</td>
+<td>A thread is a subset of the process.</td>
+</tr>
+<tr>
+<td>Process</td>
+<td>It has its own copy of the data segment of the parent process.</td>
+<td>It has direct access to the data segment of its process.</td>
+</tr>
+<tr>
+<td>Communication</td>
+<td>Processes must use inter-process communication to communicate with sibling processes.</td>
+<td>Threads can directly communicate with other threads of its process.</td>
+</tr>
+<tr>
+<td>Overheads</td>
+<td>Processes have considerable overhead.</td>
+<td>Threads have almost no overhead.</td>
+</tr>
+<tr>
+<td>Creation</td>
+<td>New processes require duplication of the parent process.</td>
+<td>New threads are easily created.</td>
+</tr>
+<tr>
+<td>Control</td>
+<td>Processes can only exercise control over child processes.</td>
+<td>Threads can exercise considerable control over threads of the same process.</td>
+</tr>
+<tr>
+<td>Changes</td>
+<td>Any change in the parent process does not affect child processes.</td>
+<td>Any change in the main thread may affect the behavior of the other threads of the process.</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>Run in separate memory spaces.</td>
+<td>Run in shared memory spaces.</td>
+</tr>
+<tr>
+<td>File descriptors</td>
+<td>Most file descriptors are not shared.</td>
+<td>It shares file descriptors.</td>
+</tr>
+<tr>
+<td>File system</td>
+<td>There is no sharing of file system context.</td>
+<td>It shares file system context.</td>
+</tr>
+<tr>
+<td>Signal</td>
+<td>It does not share signal handling.</td>
+<td>It shares signal handling.</td>
+</tr>
+<tr>
+<td>Controlled by</td>
+<td>Process is controlled by the operating system.</td>
+<td>Threads are controlled by programmer in a program.</td>
+</tr>
+<tr>
+<td>Dependence</td>
+<td>Processes are independent.</td>
+<td>Threads are dependent.</td>
+</tr>
+</tbody></table>
+<p><a href="http://www.differencebetween.info/difference-between-process-and-thread">http://www.differencebetween.info/difference-between-process-and-thread</a></p>
+]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
+      <tags>
+        <tag>process</tag>
+        <tag>thread</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>HTTP protocol</title>
+    <url>/2016/10/25/HTTP/</url>
+    <content><![CDATA[<h3 id="名词解析"><a href="#名词解析" class="headerlink" title="名词解析"></a>名词解析</h3><hr>
+<ul>
+<li><em><strong>URI</strong></em>  :(uniform resource identifier) 统一资源定位符；用来标识互联网上的唯一资源</li>
+<li><em><strong>URL</strong></em>  :(uniform resource locator) 统一资源定位器；<br>e.g:<a href="http://user:pass@host.com/path?query=string#hash">http://user:pass@host.com:80/path?query=string#hash</a> 此类格式都叫URL，http，ftp协议等</li>
+<li><em><strong>URN</strong></em>  :(Uniform Resource Name) 统一资源名称<br><img src="https://image.ibb.co/iu3WkV/URI-URL-URN.png" alt="img"></li>
+</ul>
+<span id="more"></span>
+
+<h3 id="TCP协议"><a href="#TCP协议" class="headerlink" title="TCP协议"></a>TCP协议</h3><hr>
+<h4 id="HTTP请求返回的完整过程："><a href="#HTTP请求返回的完整过程：" class="headerlink" title="HTTP请求返回的完整过程：####"></a>HTTP请求返回的完整过程：####</h4><p><img src="https://image.ibb.co/b01R2A/URL-HTTP.png" alt="img"></p>
+<p>其中每个节点都代表HTTP为我们做的事情</p>
+<h4 id="网络模型"><a href="#网络模型" class="headerlink" title="网络模型"></a>网络模型</h4><p>网络模型有七层标准模型和经典五层模型，这里展示五层模型<br><img src="https://image.ibb.co/fKJOhA/image.png" alt="img"></p>
+<ul>
+<li>物理层：定义物理设备如何传输数据</li>
+<li>数据链路层：通信实体间建立数据链路连接</li>
+<li>网络层：为数据在实体间传输创建逻辑链路</li>
+<li>传输层：向用户提供可靠的端到端(end to end)的服务<br>传输层主要有两个协议TCP和UDP；<br>什么是端到端的服务呢？<br>比如我们建立了客户端到服务器的连接之后，他们两端如何去传输数据，传输的方式都是在这里定义的；<br>我们传输的数据有可能很小有可能很大，如果很大不能一次传输过去，那么就要分包分片；分后传输过去后又如何组装也是在这里定义的；</li>
+<li>应用层：为软件提供服务<br>例如HTTP；构建于TCP协议之上的；屏蔽了网络传输相关细节</li>
+</ul>
+<h3 id="HTTP报文格式"><a href="#HTTP报文格式" class="headerlink" title="HTTP报文格式"></a>HTTP报文格式</h3><hr>
+<p><img src="https://image.ibb.co/jKB4pq/HTTP.png" alt="img"></p>
+<ol>
+<li><strong><strong>http报文都有一个首行（不属于请求头）</strong></strong><ul>
+<li>method：GET POST DELET PUT …</li>
+<li>URL：</li>
+<li>协议版本</li>
+<li>返回码code: 不同code代表不同的意思 200,,301，302，404,500等</li>
+</ul>
+</li>
+<li><strong><strong>header</strong></strong><br> 首行换行后就是header</li>
+<li><strong><strong>body</strong></strong><br> header 换行后再空行 就是body</li>
+</ol>
+<h3 id="认识HTTP-Client"><a href="#认识HTTP-Client" class="headerlink" title="认识HTTP Client"></a>认识HTTP Client</h3><hr>
+<p>什么是HTTP Client？<br>只要实现了一个发送标准HTTP请求的工具，那就是HTTP Client<br>ps: http只是负责返回数据，而真正展示页面的是浏览器，浏览器拿到数据后对数据进行渲染，得到结果展示给用户</p>
+<p>使用 curl 工具，在命令行中 <strong><strong>curl baidu.com</strong></strong>会得到<br><img src="https://image.ibb.co/bWAj7A/curlbaiducom.png" alt="img"><br>为什么和在浏览器看到的不一样？<br>因为浏览器在得到数据解析识别 meta 后，根据 http-equiv 重定向到 <a href="http://www.baidu.com/">www.baidu.com</a></p>
+<h3 id="浏览器同域限制"><a href="#浏览器同域限制" class="headerlink" title="浏览器同域限制"></a>浏览器同域限制</h3><hr>
+<ul>
+<li>跨域如何请求资源？<br>被请求资源的http头设置 ‘Access-Control-Allow-Origin’:’*’; 也可以设置具体的url地址，指定特定的服务能请求<br>e.g：’Access-Control-Allow-Origin’:’<a href="http://donscoco.github.io&/#39;---%E5%8F%AA%E6%9C%89http://donscoco.github.io%E5%8F%AF%E4%BB%A5%E8%B7%A8%E5%9F%9F%E8%AF%B7%E6%B1%82%E8%BF%99%E4%B8%AA%E8%B5%84%E6%BA%90">http://donscoco.github.io&#39;---只有http://donscoco.github.io可以跨域请求这个资源</a><br>ps:就算头没有设置，请求也是能请求到，只是浏览器识别不是同一域而且没有’Access-Control-Allow-Origin’所以会忽略</li>
+<li>什么是跨域？<br>跨域，指的是浏览器不能执行其他网站的脚本。 它是由浏览器的同源策略造成的，是<strong><strong>浏览器施加的安全限制</strong></strong>。<br>浏览器运行标签上的路径加载内容，不会在乎是否加了’Access-Control-Allow-Origin’:’*’;</li>
+<li>CORS预请求</li>
+</ul>
+<h3 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h3><hr>
+<p><img src="https://image.ibb.co/dFEACA/image.png" alt="img"></p>
+<h4 id="可缓存性"><a href="#可缓存性" class="headerlink" title="可缓存性"></a>可缓存性</h4><p>Cache-Control:<br>http请求所经过的路径中，包括经过的一些http代理服务器都可以对http的内容进行缓存的操作<br>public 浏览器，代理服务器都进行缓存<br>private 只有浏览器缓存<br>no-cache 不缓存</p>
+<h4 id="到期"><a href="#到期" class="headerlink" title="到期"></a>到期</h4><p>max-age&#x3D;<seconds><br>设置缓存时间；过期之后浏览器才会再次发送请求到服务端<br>s-maxage&#x3D;<seconds><br>代理服务器读取的缓存时间</p>
+<h4 id="重新验证"><a href="#重新验证" class="headerlink" title="重新验证"></a>重新验证</h4><p>must-revalidate 在max-age 过期后用于验证<br>proxy-revalidate 用于缓存服务器的过期验证</p>
+<h4 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h4><p>no-store<br>no-transform </p>
+<h4 id="验证头"><a href="#验证头" class="headerlink" title="验证头"></a>验证头</h4><p><code>Last-Modified</code>  上次修改时间<br><code>Etag</code>数据签名:常用的数据签名是对内容进行一个哈希计算；配合if-Match或者if-Non-Match使用对比资源签名判断是否使用缓存;</p>
+<h3 id="Cookie"><a href="#Cookie" class="headerlink" title="Cookie"></a>Cookie</h3><hr>
+<h4 id="cookie"><a href="#cookie" class="headerlink" title="cookie"></a>cookie</h4><p>通过Set-Cookie设置      e.g: ‘Set-Cookie’:’id&#x3D;123’</p>
+<ul>
+<li>cookie结构：cookie是键值对的形式，可以设置多个</li>
+<li>cookie流程：cookie是服务器返回的时候设置到浏览器的，保存在浏览器里面的数据，浏览器下一次同域的请求中会带上cookie</li>
+<li>多个cookie：使用数组 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[<span class="string">&#x27;id=123&#x27;</span>,<span class="string">&#x27;name=donscoco&#x27;</span>]</span><br></pre></td></tr></table></figure>
+来表示</li>
+<li>cookie属性：<br>  属性之间使用<code>;</code>分隔;<br>  <code>max-age</code>和<code>expires</code>设置过期时间；[‘id&#x3D;123’,’name&#x3D;donscoco;max-age&#x3D;10’] max-age是多久过期，expires是到什么时候过期;<br>  <code>Secure</code>只有在https的时候发送;<br>  HttpOnly无法通过document.cookie访问（为了安全考虑，如CSRF攻击）[‘id&#x3D;123’,’name&#x3D;donscoco;HttpOnly’];<br>  cookie共享：不同域名之间的cookie是不能共享的；如果想在一级域名下所有的二级域名都能读到cookie可以在访问一级域名test.com时设置[‘id&#x3D;123’,’name&#x3D;donscoco;domain&#x3D;test.com’]那么a.test.com和b.test.com都可以拿到同样的cookie；<br>  ps：不能跨域名设置cookie；e.g：a.test.com 不能给 test.com 设置cookie</li>
+</ul>
+<h4 id="Cookie和Session"><a href="#Cookie和Session" class="headerlink" title="Cookie和Session"></a>Cookie和Session</h4><p>Cookie不等于session；只是两者也是不同的概念，只是一般我们使用cookie来保存session，例如对于每个网站来说每个用户的session都是不一样的，这样客户端请求服务的时候会带上cookie，如果cookie中有之前存放的session，那么服务器就可以识别用户；这里session就是用于定位用户，只要能定位到用户，那就是一种session的实现方案，并不一定非要通过cookie来实现；</p>
+<h3 id="HTTP连接"><a href="#HTTP连接" class="headerlink" title="HTTP连接"></a>HTTP连接</h3><hr>
+<p>http的请求是建立在TCP的连接上的<br>http请求发送的时候要先去创建一个tcp连接，在tcp连接上面把请求发送并且接受返回；<br>在经过一次请求与返回之后，TCP和服务器的连接如果保持，那下次请求的时候可以直接使用这个TCP连接，但是在没有请求的时候是一种消耗，如果断开，下次请求的时候就要重新去进行三次握手建立连接；<br>tcp默认会同时创建6个连接；如果连接满了剩余的请求就会进入等待，这里是说同时存在6个连接，传输后不一定会继续使用原来的连接，看<code>connection</code>会不会复用，可能是其他连接，但是同时存在的连接不超过6个</p>
+<h4 id="TCP长连接"><a href="#TCP长连接" class="headerlink" title="TCP长连接"></a>TCP长连接</h4><p>什么是长连接？客户端和服务端建立TCP连接后保持连接<br>长连接的设置：<code>&#39;connection&#39;:&#39;keep-alive&#39;</code><br>客户端和服务端都可以设置这个字段，这里如果服务端返回的如果是不想保持，浏览器也还是会关掉<br>浏览器请求会尽量地去复用已有的TCP连接，等有剩余的连接空出来;观察下图 ConnectionID和Waterfall字段；<br><img src="https://image.ibb.co/dSGtFV/6.png" alt="img"></p>
+<h4 id="TCP短连接"><a href="#TCP短连接" class="headerlink" title="TCP短连接"></a>TCP短连接</h4><p>什么是短连接？客户端和服务端建立TCP连接经过一次请求返回后就关闭连接<br>短连接的设置：’connection’:’close’<br>浏览器不会去复用TCP连接，每个请求都建立一个新的TCP连接;观察下图 ConnectionID和Waterfall字段；<br><img src="https://image.ibb.co/fKW79q/TCP.png" alt="img"></p>
+<h4 id="信道复用"><a href="#信道复用" class="headerlink" title="信道复用"></a>信道复用</h4><p>在http2里面；在TCP连接上面，我们可以并发地去放HTTP请求，也就是说，我们在连接一个网站(同域)的时候，只需要一个连接<br><img src="https://image.ibb.co/nPWh9q/image.png" alt="img"></p>
+<h3 id="数据协商"><a href="#数据协商" class="headerlink" title="数据协商"></a>数据协商</h3><hr>
+<p>概念：客户端向服务端发送请求时，向服务端表明，自己希望拿到的数据格式是怎么样的。</p>
+<h4 id="请求"><a href="#请求" class="headerlink" title="请求"></a>请求</h4><ul>
+<li><code>Accept</code> 告诉服务器我希望的数据类型，可以是多个，用<code>,</code>分隔</li>
+<li><code>Accept-Encoding</code> 告诉服务器我的数据是怎样的编码方式进行传输,流行的有（gzip,deflate,br）</li>
+<li><code>Accept-Language</code> 表示我希望要的语言类型,这个一般 是浏览器自动加的，浏览器会根据系统语言来填写这个</li>
+<li><code>User-Agent</code> 客户端的类型，告诉服务器我是PC端还是移动端</li>
+</ul>
+<h4 id="返回"><a href="#返回" class="headerlink" title="返回"></a>返回</h4><ul>
+<li><code>Content-Type</code> 表示我实际返回的是什么样的数据格式</li>
+<li><code>Content-Encoding</code> 声明我服务端返回的数据是什么编码</li>
+<li><code>Content-Language</code> 表示返回的语言类型</li>
+</ul>
+<h3 id="重定向"><a href="#重定向" class="headerlink" title="重定向"></a>重定向</h3><h4 id="服务端示例"><a href="#服务端示例" class="headerlink" title="服务端示例"></a>服务端示例</h4><p><img src="https://image.ibb.co/dE7m2A/image.png" alt="img"></p>
+<h4 id="客户端访问http-localhost-8080后跳转到http-localhost-8080-new展示"><a href="#客户端访问http-localhost-8080后跳转到http-localhost-8080-new展示" class="headerlink" title="客户端访问http://localhost:8080后跳转到http://localhost:8080/new展示"></a>客户端访问<a href="http://localhost:8080后跳转到http://localhost:8080/new展示">http://localhost:8080后跳转到http://localhost:8080/new展示</a></h4><p><img src="https://image.ibb.co/bOHB2A/image.png" alt="img"><br>这里要状态吗和Location一起使用，状态码设置200依然不会跳转</p>
+<h4 id="301和302区别"><a href="#301和302区别" class="headerlink" title="301和302区别"></a>301和302区别</h4><p>301指永久跳转，302是临时跳转<br>浏览器下次再遇到请求那个会跳转301的路径时，会自动再加上跳转后的路径，不用再去经过服务器处理301重定向<br>告诉浏览器下一次再出现这个路径的访问的时候，直接在浏览器这边把他变成一个新的路径就可以了，不用经过服务器再去指定一个新的location而且还会默认在浏览器留下缓存</p>
+<h3 id="HTTPS"><a href="#HTTPS" class="headerlink" title="HTTPS"></a>HTTPS</h3><hr>
+<p><strong><strong>HTTP概念</strong></strong>：超文本传输协议（HTTP）是用于传输诸如HTML的超媒体文档的应用层协议。它被设计用于Web浏览器和Web服务器之间的通信，但它也可以用于其他目的。 HTTP遵循经典的客户端-服务端模型，客户端打开一个连接以发出请求，然后等待它收到服务器端响应。 HTTP是无状态协议，意味着服务器不会在两个请求之间保留任何数据（状态）。虽然通常基于TCP &#x2F; IP层，但可以在任何可靠的传输层上使用;也就是说，一个不会静默丢失消息的协议，如UDP。<br><strong><strong>HTTPS概念</strong></strong>：HTTP Strict Transport Security (通常简称为HSTS) 是一个安全功能，它告诉浏览器只能通过HTTPS访问当前资源, 禁止HTTP方式.<br>Strict Transport Security解决了这个问题；只要你通过HTTPS请求访问银行网站，并且银行网站配置好Strict Transport Security，你的浏览器知道自动使用HTTPS请求，这可以阻止黑客的中间人攻击的把戏。<br>HTTP的包是明文传输<br>HTTPS是在HTTP基础上进行加密</p>
+<ul>
+<li>TTPS协议需要到CA申请证书，一般免费证书很少，需要交费。</li>
+<li>HTTPS运行在SSL&#x2F;TLS之上，SSL&#x2F;TLS运行在TCP之上，所有传输的内容都经过加密的。</li>
+<li>HTTP和HTTPS使用的是完全不同的连接方式，用的端口也不一样，前者是80，后者是443。</li>
+</ul>
+<h4 id="加密"><a href="#加密" class="headerlink" title="加密"></a>加密</h4><p>公钥私钥主要是在握手的时候进行传输<br><img src="https://image.ibb.co/fusHsA/image.png" alt="img"></p>
+<ul>
+<li>私钥</li>
+<li>公钥<br>更多参考 <a href="http://www.wxtlife.com/2016/03/27/%E8%AF%A6%E8%A7%A3https%E6%98%AF%E5%A6%82%E4%BD%95%E7%A1%AE%E4%BF%9D%E5%AE%89%E5%85%A8%E7%9A%84%EF%BC%9F/">http://www.wxtlife.com/2016/03/27/%E8%AF%A6%E8%A7%A3https%E6%98%AF%E5%A6%82%E4%BD%95%E7%A1%AE%E4%BF%9D%E5%AE%89%E5%85%A8%E7%9A%84%EF%BC%9F/</a></li>
+</ul>
+<h4 id="IN-ACTION"><a href="#IN-ACTION" class="headerlink" title="IN ACTION"></a>IN ACTION</h4><p><strong><strong>证书生成</strong></strong></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">openssl req -x509 -newkey rsa:2048 -nodes -sha256 -keyout localhost-privkey.pem -out localhost-cert.pem</span><br></pre></td></tr></table></figure>
+<p>得到  <strong>localhost-privkey.pem</strong> 和 <strong>localhost-cert.pem</strong> 文件</p>
+<p><strong><strong>Nginx 配置</strong></strong>:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">proxy_cache_path cache levels=1:2 keys_zone=my_cache:10m;</span><br><span class="line"></span><br><span class="line">server &#123;</span><br><span class="line">  listen       80;</span><br><span class="line">  <span class="comment"># listen       [::]:80 default_server;</span></span><br><span class="line">  server_name  test.com;</span><br><span class="line"></span><br><span class="line">  <span class="comment"># return 302 https://$server_name$request_uri;</span></span><br><span class="line"></span><br><span class="line">  location / &#123;</span><br><span class="line">    proxy_cache my_cache;</span><br><span class="line">    proxy_pass http://127.0.0.1:8888;</span><br><span class="line">    proxy_set_header Host <span class="variable">$host</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">server &#123;</span><br><span class="line">  listen       443 http2;</span><br><span class="line">  server_name  test.com;</span><br><span class="line"></span><br><span class="line">  http2_push_preload  on;</span><br><span class="line"></span><br><span class="line">  ssl on;</span><br><span class="line">  ssl_certificate_key  ../certs/localhost-privkey.pem;</span><br><span class="line">  ssl_certificate      ../certs/localhost-cert.pem;</span><br><span class="line"></span><br><span class="line">  location / &#123;</span><br><span class="line">    proxy_cache my_cache;</span><br><span class="line">    proxy_pass http://127.0.0.1:8888;</span><br><span class="line">    proxy_set_header Host <span class="variable">$host</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="HTTP2"><a href="#HTTP2" class="headerlink" title="HTTP2"></a>HTTP2</h3><hr>
+<ul>
+<li><p><strong>数据的传输</strong>：<br>  http2 所有数据都是以<strong><strong>二进制</strong></strong>进行传输的，都是以帧进行传输<br>  http1 里面传输是通过<strong><strong>字符串</strong></strong>来传输的<br>  HTTP1.x的解析是基于文本。基于文本协议的格式解析存在天然缺陷，文本的表现形式有多样性，要做到健壮性考虑的场景必然很多，二进制则不同，只认0和1的组合。基于这种考虑HTTP2.0的协议解析决定采用二进制格式，实现方便且健壮</p>
+</li>
+<li><p><strong>多路复用</strong><br>  即连接共享，即每一个request都是是用作连接共享机制的。<br>  一个request对应一个id，这样一个连接上可以有多个request，每个连接的request可以随机的混杂在一起，接收方可以根据request的 id将request再归属到各自不同的服务端请求里面。<br>  多路复用原理图：</p>
+</li>
+<li><p><strong>请求返回无序</strong>：<br>  http2 同一个连接发送多个请求不需要按照顺序来返回<br>  这个也是数据用帧来传输带来的好处，也进一步带来了可以并发传输，大大增加了效率</p>
+</li>
+<li><p><strong>头信息压缩</strong><br>  头信息压缩提高效率的功能；<br>  在http1里面每次请求和返回的头都是要完整返回的，但是头里面很多字段都是字符串，会导致传输的额外开销</p>
+</li>
+<li><p><strong>推送</strong><br>  传统的http请求只能客户端发起请求，然后服务器响应请求；客户端是主动方，服务端是被动方；<br>  在HTTP2里面，服务端是可以主动发起数据传输的<br>  举个栗子：html中都有一些css，js之类的文件，在请求了html文本之后，再根据css，js的地址去请求；顺序是先得到文本在浏览器解析后再去请求css和js，这是一个串行的过程；有推送功能后，在返回html时一起推送css和js，大大提高了效率</p>
+</li>
+</ul>
+<p>http2定义上没有和https相关，但是因为http2是google之前开发的一个叫spdy演化而来，所以，要使用http2要支持https</p>
+<h3 id="HTTP和HTTPS区别"><a href="#HTTP和HTTPS区别" class="headerlink" title="HTTP和HTTPS区别"></a>HTTP和HTTPS区别</h3><ul>
+<li>HTTPS协议需要到CA申请证书，一般免费证书很少，需要交费。</li>
+<li>HTTP协议运行在TCP之上，所有传输的内容都是明文，HTTPS运行在SSL&#x2F;TLS之上，SSL&#x2F;TLS运行在TCP之上，所有传输的内容都经过加密的。</li>
+<li>HTTP和HTTPS使用的是完全不同的连接方式，用的端口也不一样，前者是80，后者是443。</li>
+<li>HTTPS可以有效的防止运营商劫持，解决了防劫持的一个大问题。<br><img src="https://image.ibb.co/hbKu5V/HTTPS.png" alt="img"></li>
+</ul>
+]]></content>
+      <categories>
+        <category>Protocol</category>
+      </categories>
+      <tags>
+        <tag>HTTP</tag>
+        <tag>HTTPS</tag>
+        <tag>HTTP2</tag>
+      </tags>
+  </entry>
+</search>
