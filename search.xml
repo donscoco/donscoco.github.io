@@ -121,7 +121,10 @@
 </ul>
 ]]></content>
       <categories>
+        <category>Network</category>
         <category>Protocol</category>
+        <category>http</category>
+        <category>concept</category>
       </categories>
       <tags>
         <tag>HTTP</tag>
@@ -217,11 +220,139 @@
 <p><a href="http://www.differencebetween.info/difference-between-process-and-thread">http://www.differencebetween.info/difference-between-process-and-thread</a></p>
 ]]></content>
       <categories>
-        <category>OS</category>
+        <category>different</category>
+        <category>os</category>
+        <category>scheduling</category>
       </categories>
       <tags>
         <tag>process</tag>
         <tag>thread</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>读写锁</title>
+    <url>/2020/10/02/%E8%AF%BB%E5%86%99%E9%94%81%E2%80%94%E2%80%94golang%E4%BE%8B%E5%AD%90/</url>
+    <content><![CDATA[<p>看完 golang的 读写锁后做下笔记。</p>
+<h3 id="关键点"><a href="#关键点" class="headerlink" title="关键点"></a>关键点</h3><h4 id="读写锁设计关注的点："><a href="#读写锁设计关注的点：" class="headerlink" title="读写锁设计关注的点："></a>读写锁设计关注的点：</h4><ul>
+<li>写锁与写锁的互斥</li>
+<li>读锁释放和写锁获取的同步</li>
+<li>写锁释放和读锁获取的同步</li>
+<li>读饥饿和写饥饿问题</li>
+</ul>
+<h4 id="RWLock的本质"><a href="#RWLock的本质" class="headerlink" title="RWLock的本质:"></a>RWLock的本质:</h4><ul>
+<li>写与写之间的同步 用mutexlock </li>
+<li>写与读之间的同步 用readerCount中的：高位——写等待标志位，低位——读记数</li>
+<li>为了防止写饥饿，用readerWait配合readerCount高位写等待标志位让读锁阻塞。</li>
+<li>为了防止读饥饿，写锁释放前要先唤醒读锁的阻塞，让读锁协程比后来的写锁协程先进入临界区</li>
+</ul>
+<span id="more"></span>
+
+
+
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>前置说明</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">runtime_SemacquireMutex</span><br><span class="line">runtime_Semrelease</span><br><span class="line">分别是阻塞和唤醒，里面实际会调用lock2进行自旋等优化，但是因为不是我们主要关注的点，这里我们简单的理解就是阻塞和唤醒了，把精力放在读写之间的同步设计上。</span><br><span class="line"></span><br><span class="line">中间一些竞态代码就用 ... 省略了。不是我们关注的重点</span><br><span class="line"></span><br><span class="line">其中读释放锁调用了 一个 rUnlockSlow 方法，这里我们为了方便整理讨论，直接把这个函数加到释放锁里面</span><br><span class="line"></span><br><span class="line">为了方便讨论说明，我在代码后面加了// 标志：xxx 的字样，然后到下面用 xxx 表示对应的那一行。这个// 标志xxx不是代码中的注释。是我们自己加的，方便指代我们在讨论哪一行。</span><br><span class="line"></span><br><span class="line">使用版本go1.15</span><br></pre></td></tr></table></figure>
+
+
+
+<p>主要关注数据结构和4个方法，分别是 写锁获取，写锁释放，读锁获取，读锁释放。</p>
+<p>数据结构</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> RWMutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	w           Mutex  <span class="comment">// held if there are pending writers</span></span><br><span class="line">	writerSem   <span class="type">uint32</span> <span class="comment">// semaphore for writers to wait for completing readers</span></span><br><span class="line">	readerSem   <span class="type">uint32</span> <span class="comment">// semaphore for readers to wait for completing writers</span></span><br><span class="line">	readerCount <span class="type">int32</span>  <span class="comment">// number of pending readers</span></span><br><span class="line">	readerWait  <span class="type">int32</span>  <span class="comment">// number of departing readers</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>写锁获取</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span></span> Lock() &#123;</span><br><span class="line">	...</span><br><span class="line">	rw.w.Lock() <span class="comment">// 用于阻塞其他写锁 // 标志：lwl</span></span><br><span class="line">	r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders</span><br><span class="line">	<span class="keyword">if</span> r != <span class="number">0</span> &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) != <span class="number">0</span> &#123; <span class="comment">// 记录第几个读锁退出之后要唤醒自己 // 标志：wrw</span></span><br><span class="line">		runtime_SemacquireMutex(&amp;rw.writerSem, <span class="literal">false</span>, <span class="number">0</span>) <span class="comment">//阻塞自己，等待读锁唤醒自己 //标志：wbs</span></span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>写锁释放</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span></span> Unlock() &#123;</span><br><span class="line">	r := atomic.AddInt32(&amp;rw.readerCount, rwmutexMaxReaders)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="type">int</span>(r); i++ &#123;</span><br><span class="line">		runtime_Semrelease(&amp;rw.readerSem, <span class="literal">false</span>, <span class="number">0</span>)<span class="comment">//唤醒阻塞的读锁 //标志：rrs</span></span><br><span class="line">	&#125;</span><br><span class="line">	rw.w.Unlock() <span class="comment">// 标志：rwl</span></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 上面 rrs在 rwl 之前执行是为了 防止读锁饥饿；先唤醒 read锁，这样可以保证读锁比其他写锁有优先级，不至于出现读锁一直抢不到锁的情况。</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>读锁获取</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span></span> RLock() &#123;</span><br><span class="line">	... </span><br><span class="line">	<span class="keyword">if</span> atomic.AddInt32(&amp;rw.readerCount, <span class="number">1</span>) &lt; <span class="number">0</span> &#123; <span class="comment">// 说明有写锁：因为写锁吧高位</span></span><br><span class="line">		runtime_SemacquireMutex(&amp;rw.readerSem, <span class="literal">false</span>, <span class="number">0</span>) <span class="comment">// 阻塞自己，等待写锁唤醒自己 // 标志：rbs</span></span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>读锁释放</p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rw *RWMutex)</span></span> RUnlock() &#123;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">if</span> r := atomic.AddInt32(&amp;rw.readerCount, <span class="number">-1</span>); r &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> atomic.AddInt32(&amp;rw.readerWait, <span class="number">-1</span>) == <span class="number">0</span> &#123;  <span class="comment">// 判断自己是否是最后一个退出的读锁//标志 rrw</span></span><br><span class="line">			runtime_Semrelease(&amp;rw.writerSem, <span class="literal">false</span>, <span class="number">1</span>) <span class="comment">// 唤醒阻塞的写锁 // 标志：wrs</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h3 id="个人想法"><a href="#个人想法" class="headerlink" title="个人想法"></a>个人想法</h3><p>声明：以下只是我个人观点，不代表官方设计者一定是这么思考的。个人观点不一定正确。写这个是为了便于以后自己遇到读写锁问题的处理和如何设计能有思路。</p>
+<h4 id="读写锁设计关注的点：-1"><a href="#读写锁设计关注的点：-1" class="headerlink" title="读写锁设计关注的点："></a>读写锁设计关注的点：</h4><ul>
+<li>写锁与写锁的互斥</li>
+<li>读锁释放和写锁获取的同步</li>
+<li>写锁释放和读锁获取的同步</li>
+<li>读饥饿和写饥饿问题</li>
+</ul>
+<h4 id="RWLock的本质："><a href="#RWLock的本质：" class="headerlink" title="RWLock的本质："></a>RWLock的本质：</h4><ul>
+<li>写与写之间的同步 用mutexlock </li>
+<li>写与读之间的同步 用readerCount</li>
+<li>为了防止写饥饿，用readerWait配合readerCount高位写等待标志位让读锁阻塞。</li>
+<li>为了防止读饥饿，写锁释放前要先唤醒读锁的阻塞</li>
+</ul>
+<h3 id="设计思路："><a href="#设计思路：" class="headerlink" title="设计思路："></a>设计思路：</h3><hr>
+<p>Q：写锁和写锁之间怎么设计同步？</p>
+<p>A：直接使用 mutexlock 既可。</p>
+<p>看代码中标志 lwl 和 标志  rwl 的行</p>
+<hr>
+<p>Q：读锁和写锁之间怎么设计同步？</p>
+<p>A：需要关注两个点。</p>
+<ol>
+<li>读锁方需要知道写锁方是否已经到来。</li>
+<li>读锁方的协程谁是最后离开的？</li>
+</ol>
+<p>所以我们需要设计</p>
+<ol>
+<li>一个标志来让读锁知道写锁已经到来。</li>
+<li>记录读锁的数量。好让写锁到来时设置读锁数量（readerWait变量），读锁释放时根据这个数量判断自己是否最后一个</li>
+</ol>
+<p>同时我们需要把这两个变量具备原子性，万一两条变量中间被修改过就错误了。把这两个变量合为一个变量去处理——</p>
+<p>写锁通过设置readerCount 的高位为1来把</p>
+<p><code>0000 0000 0000 0000 0000 0000 0000 0000</code> 设置成了</p>
+<p> <code>1100 0000 0000 0000 0000 0000 0000 0000</code> 相当于把最高位设置成了1，用高位来设置写锁到来标志。</p>
+<p>后续读锁只要看最高位是否为1（也就是判断是否小于0）来知道写锁是否到来。</p>
+<p>这就解释了为什么有 <code>readerCount</code>和 <code>readerWait</code>了。</p>
+<hr>
+<p>Q：读锁释放和写锁获取怎么设计同步？</p>
+<p>A：读锁释放时候，最后一个离开的读锁需要唤醒写锁，所以写锁在为读锁阻塞的时候，需要知道在写锁之前的有多少个读锁，所以需要用一个变量来记录，也就是 readerWait。最后一个读锁释放的时候要唤醒阻塞的写锁。</p>
+<p>看代码中 标志 wbs和wrs 的行。</p>
+<hr>
+<p>Q：写锁释放和读锁获取怎么设计同步？</p>
+<p>A：读锁在获取锁的时候看到readerCount最高位为1(readerCount&lt;0)。把自己阻塞，等待写锁释放。而写锁在释放的时候需要恢复读写标志，readerCount复原，也就是加上<code>const rwmutexMaxReaders = 1 &lt;&lt; 30</code>，之后检查readerCount是否&gt;0（代表此时有调用读锁的协程在阻塞）。负责唤醒。</p>
+<p>看代码中 标志 rbs 和 rrs 的行。</p>
+<hr>
+<p>Q：读写锁怎么处理写饥饿问题？</p>
+<p>A：</p>
+<p>解决写饥饿问题：写锁用readerWait来记录自己到来时还有多少读，这些读在最后一个离开的时候负责先唤醒写锁的协程。也就是解决了写饥饿</p>
+<p>看代码标志  wrw 和 rrw的行。ps：其实前提条件是还需要读锁判断readerCount 自己阻塞来配合</p>
+<hr>
+<p>Q：读写锁怎么处理读饥饿问题？</p>
+<p>A：</p>
+<p>解决读饥饿问题：读锁在看到readerCount中有标志位负数，说明有写锁在阻塞，便把自己阻塞等待这个写锁执行完后唤醒自己。写锁在释放的时候，为了防止其他写锁继续进来抢锁导致读锁饥饿，在释放锁前，先唤醒读锁，再释放锁，这样，读锁就比写锁有更先进入临界区。也就解决了读饥饿问题。</p>
+<p>看代码中标志  rrs 和 rwl 的行。</p>
+<hr>
+<p>Q：这里为什么不只设置最高位？</p>
+<p>A：是因为需要预留空间给退出的读锁，也就是预留空间给-1。举个反例，如果设置只有最高位是1（也就是最小的补码），那么-1的时候就溢出变了</p>
+<p><code>0111 1111 1111 1111 1111 1111 1111 1111</code> 这样最高位就变成了0，破坏了我们用最高位来设置写锁的标志</p>
+<hr>
+<p>todo。。。</p>
+<h3 id="使用代码"><a href="#使用代码" class="headerlink" title="使用代码"></a>使用代码</h3><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;os/signal&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> mu sync.RWMutex</span><br><span class="line"><span class="keyword">var</span> count <span class="type">int</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">1。一开始启动的10个go read，立马就打印出来。说明读他们之间没有相互阻塞</span></span><br><span class="line"><span class="comment">2。第3秒的时候，写锁是一个一个打印出来的，说明读锁之间相互阻塞</span></span><br><span class="line"><span class="comment">3。第7秒的时候（上面写锁的10个因为阻塞还没打印完），又瞬间打印出10个读锁。</span></span><br><span class="line"><span class="comment">	说明第7秒的读锁抢到了读锁，第3秒开始的一批写锁只打印了4个就和第7秒的读锁发生抢占抢占。</span></span><br><span class="line"><span class="comment">	读锁抢占后，后面的其他读锁也一起打印出来（没有被阻塞），10个读锁过后，打印剩下的写锁</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">			<span class="keyword">go</span> read(i)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		time.Sleep(<span class="number">3</span> * time.Second)</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">			<span class="keyword">go</span> write(i)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		time.Sleep(<span class="number">7</span> * time.Second)</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">			<span class="keyword">go</span> read(i)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	sig := <span class="built_in">make</span>(<span class="keyword">chan</span> os.Signal)</span><br><span class="line">	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)</span><br><span class="line">	&lt;-sig</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">read</span><span class="params">(i <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">	mu.RLock()</span><br><span class="line">	<span class="keyword">defer</span> mu.RUnlock()</span><br><span class="line">	fmt.Println(<span class="string">&quot;process reading....&quot;</span>, i)</span><br><span class="line">	time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">write</span><span class="params">(i <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">	mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> mu.Unlock()</span><br><span class="line">	fmt.Println(<span class="string">&quot;process writing....&quot;</span>, i)</span><br><span class="line">	time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>锁</category>
+        <category>读写锁</category>
+        <category>golang</category>
+      </categories>
+      <tags>
+        <tag>锁</tag>
+        <tag>个人想法</tag>
+        <tag>学习笔记</tag>
+        <tag>设计思路</tag>
       </tags>
   </entry>
 </search>
