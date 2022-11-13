@@ -355,4 +355,999 @@
         <tag>设计思路</tag>
       </tags>
   </entry>
+  <entry>
+    <title>mysql</title>
+    <url>/2020/03/11/mysql/</url>
+    <content><![CDATA[<h1 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h1><h2 id="mysql-架构"><a href="#mysql-架构" class="headerlink" title="mysql 架构"></a>mysql 架构</h2><img src="/2020/03/11/mysql/mysql-%E7%BB%93%E6%9E%84%E5%9B%BE.png" class="" title="mysql-结构图">
+
+<span id="more"></span>
+
+
+
+<p>连接器：</p>
+<ul>
+<li>tcp连接：连接的过程需要先经过 TCP 三次握手。如果mysql没有启动tcp服务就连接会有   ；</li>
+<li>用户名和密码校验：建立TCP连接后，连接器负责用户名和密码的验证。</li>
+<li>保存这次会话的用户执行权限：接着连接器会保存这次连接的用户权限，之后的操作都会根据这个权限判断是否能执行。（已经建立的连接，不会被超级管理员修改后的新权限影响）</li>
+</ul>
+<p>缓存：</p>
+<p>mysql 8.0 前的版本，对于SELECT 语句 ，mysql 会先查询缓存Query Cache，缓存是以 key-value 形式保存在内存中的，key 为 SQL 查询语句，value 为 SQL 语句查询的结果。</p>
+<p>解析器：</p>
+<p>解析器负载对sql语句进行词法解析和语法解析生成语法树</p>
+<p>预处理器：</p>
+<ul>
+<li>检查语法树中的表和字段是否存在。</li>
+<li>对  <code>*</code>  等字符进行预处理，做相关替换。例如这里<code>*</code>替换为对应表的所有字段</li>
+</ul>
+<p>优化器：</p>
+<p>优化器负责决定sql如何执行，也就是生成执行计划；例如sql查询语句要使用哪个索引等。主要在 <code>explain</code> 语句中可以看到优化器在执行sql时的决策。</p>
+<p>执行器：</p>
+<p>执行器负责根据执行计划和存储引擎交互，执行计划主要有三种</p>
+<ul>
+<li>主键索引搜索</li>
+<li>全表搜索</li>
+<li>索引下推</li>
+</ul>
+<h2 id="执行流程"><a href="#执行流程" class="headerlink" title="执行流程"></a>执行流程</h2><p>主键索引:</p>
+<p>例如执行以下sql</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from students where id = 1 AND name = &#x27;donscoco&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p>执行器 将id &#x3D; 1 传给存储引擎，存储引擎通过主键索引的 B+ 树结构定位到 id &#x3D; 1的记录。执行器从存储引擎读到记录后，接着判断记录是否符合查询条件，如果符合则发送给客户端，如果不符合则跳过该记录。</p>
+<p>全表扫描:</p>
+<p>例如执行以下sql</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from students where name = &#x27;donscoco&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p>存储引擎每读到一条记录就返回给执行器；执行器检查判断是否 name 和查询字段相等，相等则返回给客户端 （Server 层每从存储引擎读到一条记录就会发送给客户端）。执行器继续让存储引擎扫描，直到扫描完，每扫描一条记录就返回给客户端。（最后客户端会一起展示）</p>
+<p>索引下推:</p>
+<p>例如执行以下sql</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from students where age &gt; 22 AND name = &#x27;donscoco&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p>一般查询索引后，会进行一个回表操作，执行器根据二级索引拿到主键，再查询到主键索引中的完整record，然后根据这个record中的字段去判断是非符合sql的where，不符合就过滤，继续让存储引擎查找下一条；索引下推其实就是将原本需要执行器去判断的这个操作交给 存储引擎。存储引擎在查询的二级索引中根据字段判断，符合才返回给执行器。</p>
+<h1 id="索引"><a href="#索引" class="headerlink" title="索引"></a>索引</h1><h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>索引的数据结构：B+树</p>
+<p>自增主键的插入数据模式，正符合了递增插入的场景。每次插入一条新记录，都是追加操作，都不涉及到挪动其他记录，也不会触发叶子节点的分裂。而有业务逻辑的字段做主键，则往往不容易保证有序插入，这样写数据成本相对较高。</p>
+<p>（ps，以下不都是名词，例如重建索引，不是一类索引，而是指一个行为）</p>
+<p>聚簇索引——主键索引，节点下挂着的是完整的数据。</p>
+<p>二级索引——根据定义字段创建的索引，节点下挂着的是主键。</p>
+<p>回表——先查询二级索引得到主键，再查询聚簇索引的行为。</p>
+<p>覆盖索引——普通索引的节点上的数据就已经满足查询需要，不需要回表的情况下就叫覆盖索引</p>
+<p>联合索引——多个字段组成的索引，例如有（id,name,key）表，建立（name,age）的联合索引</p>
+<p>最左前缀原则——我们知道索引是一个排序树；单独用name或者用name的like ‘张%’ 可用使用上联合索引（name,age）。因为排序树对比的时候是先对比左边的。</p>
+<p>前缀索引——指通过左前缀原则，使用联合索引。例如（name,age）的联合索引，在通过 name查找的时候就能使用上</p>
+<p>索引下推——可以在索引遍历过程中，对索引中包含的字段先做判断，直接过滤掉不满足条件的记录，减少回表次数。</p>
+<p>唯一索引——保证索引用的key是唯一的</p>
+<p>索引区分度——区分度就是某个字段 column 不同值的个数「除以」表的总行数</p>
+<p>普通索引——和唯一索引相对立，可能有重复的key。例如 按名字建立二级索引，但是可能有人是重名的。</p>
+<p>重建索引——为什么要重建索引？索引可能因为删除，或者页分裂等原因，导致数据页有空洞，重建索引的过程会创建一个新的索引，把数据按顺序插入，这样页面的利用率最高，也就是索引更紧凑、更省空间。（注意，重建主键索引会导致普通的二级索引和联合索引都进行重做，因为主键改变，二级索引的节点用的是主键，自然要重做。所以，如果有重建主键索引的需求要先执行重做主键索引）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">## 重建主键索引</span></span><br><span class="line">alter table T drop primary key;</span><br><span class="line">alter table T add primary key(<span class="built_in">id</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">## 重建二级索引</span></span><br><span class="line">alter table T drop index k;</span><br><span class="line">alter table T add index(k);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<p>什么时候适用索引？</p>
+<ul>
+<li>字段有唯一性限制的，比如商品编码；</li>
+<li>经常用于 <code>WHERE</code> 查询条件的字段，这样能够提高整个表的查询速度，如果查询条件不是一个字段，可以建立联合索引。</li>
+<li>经常用于 <code>GROUP BY</code> 和 <code>ORDER BY</code> 的字段，这样在查询的时候就不需要再去做一次排序了，因为我们都已经知道了建立索引之后在 B+Tree 中的记录都是排序好的。（联合索引可以用于排序sql优化）</li>
+</ul>
+<p>什么时候不需要创建索引？</p>
+<ul>
+<li><code>WHERE</code> 条件，<code>GROUP BY</code>，<code>ORDER BY</code> 里用不到的字段，索引的价值是快速定位，如果起不到定位的字段通常是不需要创建索引的，因为索引是会占用物理空间的。</li>
+<li>字段中存在大量重复数据，不需要创建索引，比如性别字段，只有男女，如果数据库表中，男女的记录分布均匀，那么无论搜索哪个值都可能得到一半的数据。在这些情况下，还不如不要索引，因为 MySQL 还有一个查询优化器，查询优化器发现某个值出现在表的数据行中的百分比很高的时候，它一般会忽略索引，进行全表扫描。</li>
+<li>表数据太少的时候，不需要创建索引；</li>
+<li>经常更新的字段不用创建索引，比如不要对电商项目的用户余额建立索引，因为索引字段频繁修改，由于要维护 B+Tree的有序性，那么就需要频繁的重建索引，这个过程是会影响数据库性能的。</li>
+</ul>
+<p>有什么优化索引的方法？</p>
+<ul>
+<li>前缀索引优化；——使用前缀索引是为了减小索引字段大小（节省空间）</li>
+<li>覆盖索引优化；——不用回表（提升性能）</li>
+<li>主键索引最好是自增的；——有效预防页分裂导致的空间浪费</li>
+<li>防止索引失效；</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">##### 主键索引最好是自增的:</span></span><br><span class="line">如果我们使用自增主键，那么每次插入的新数据就会按顺序添加到当前索引节点的位置，不需要移动已有的数据，当页面写满，就会自动开辟一个新页面。因为每次插入一条新记录，都是追加操作，不需要重新移动数据，因此这种插入数据的方法效率非常高。</span><br><span class="line">如果我们使用非自增主键，由于每次插入主键的索引值都是随机的，因此每次插入新的数据时，就可能会插入到现有数据页中间的某个位置，这将不得不移动其它数据来满足新数据的插入，甚至需要从一个页面复制数据到另外一个页面，我们通常将这种情况称为页分裂。页分裂还有可能会造成大量的内存碎片，导致索引结构不紧凑，从而影响查询效率。</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">##### 常见索引失效场景</span></span><br><span class="line">联合索引要能正确使用需要遵循最左匹配原则，也就是按照最左优先的方式进行索引的匹配，否则就会导致索引失效。</span><br><span class="line">左模糊匹配——当我们使用左或者左右模糊匹配的时候，也就是 like %xx 或者 like %xx%这两种方式都会造成索引失效；</span><br><span class="line">函数计算——当我们在查询条件中对索引列做了计算、函数、类型转换操作，这些情况下都会造成索引失效；</span><br><span class="line">OR 条件 ——在 WHERE 子句中，如果在 OR 前的条件列是索引列，而在 OR 后的条件列不是索引列，那么索引会失效。</span><br><span class="line">索引列隐式数据类型转化——</span><br><span class="line">对索引列进行表达式计算——</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="数据页（Innodb引擎的）"><a href="#数据页（Innodb引擎的）" class="headerlink" title="数据页（Innodb引擎的）"></a>数据页（Innodb引擎的）</h2><p><strong>InnoDB 的数据是按「数据页」为单位来读写的</strong>，也就是说，当需要读一条记录的时候，并不是将这个记录本身从磁盘读出来，而是以页为单位，将其整体读入内存。</p>
+<p><strong>数据库的 I&#x2F;O 操作的最小单位是页</strong>，<strong>InnoDB 数据页的默认大小是 16KB</strong>，意味着数据库每次读写都是以 16KB 为单位的，一次最少从磁盘中读取 16K 的内容到内存中，一次最少把内存中的 16K 内容刷新到磁盘中。</p>
+<img src="/2020/03/11/mysql/mysql-%E6%95%B0%E6%8D%AE%E9%A1%B5%E7%BB%93%E6%9E%84.drawio.png" class="" title="数据页结构">
+
+<p>在 File Header 中有两个指针，分别指向上一个数据页和下一个数据页，连接起来的页相当于一个双向的链表，如下图所示：</p>
+<img src="/2020/03/11/mysql/mysql-%E6%95%B0%E6%8D%AE%E9%A1%B5%E5%85%B3%E7%B3%BB%E5%9B%BE.drawio.png" class="">
+
+<p>数据页的主要作用是存储记录，也就是数据库的数据，所以重点说一下数据页中的 User Records 是怎么组织数据的。</p>
+<p><strong>数据页中的记录按照「主键」顺序组成单向链表</strong>，单向链表的特点就是插入、删除非常方便，但是检索效率不高，最差的情况下需要遍历链表上的所有节点才能完成检索。</p>
+<p>因此，数据页中有一个<strong>页目录</strong>，起到记录的索引作用，就像书籍那样，针对书中内容的每个章节设立了一个目录，想看某个章节的时候，可以查看目录，快速找到对应的章节的页数，而数据页中的页目录就是为了能快速找到记录。</p>
+
+
+<p>页目录创建的过程如下：</p>
+<ol>
+<li>将所有的记录划分成几个组，这些记录包括最小记录和最大记录，但不包括标记为“已删除”的记录；</li>
+<li>每个记录组的最后一条记录就是组内最大的那条记录，并且最后一条记录的头信息中会存储该组一共有多少条记录，作为 n_owned 字段（上图中粉红色字段）</li>
+<li>页目录用来存储每组最后一条记录的地址偏移量，这些地址偏移量会按照先后顺序存储起来，每组的地址偏移量也被称之为槽（slot），<strong>每个槽相当于指针指向了不同组的最后一个记录</strong>。</li>
+</ol>
+<p>从图可以看到，<strong>页目录就是由多个槽组成的，槽相当于分组记录的索引</strong>。然后，因为记录是按照「主键值」从小到大排序的，所以<strong>我们通过槽查找记录时，可以使用二分法快速定位要查询的记录在哪个槽（哪个记录分组），定位到槽后，再遍历槽内的所有记录，找到对应的记录</strong>，无需从最小记录开始遍历整个页中的记录链表。</p>
+<p>以上面那张图举个例子，5 个槽的编号分别为 0，1，2，3，4，我想查找主键为 11 的用户记录：</p>
+<ul>
+<li>先二分得出槽中间位是 (0+4)&#x2F;2&#x3D;2 ，2号槽里最大的记录为 8。因为 11 &gt; 8，所以需要从 2 号槽后继续搜索记录；</li>
+<li>再使用二分搜索出 2 号和 4 槽的中间位是 (2+4)&#x2F;2&#x3D; 3，3 号槽里最大的记录为 12。因为 11 &lt; 12，所以主键为 11 的记录在 3 号槽里；</li>
+<li>这里有个问题，<strong>「槽对应的值都是这个组的主键最大的记录，如何找到组里最小的记录」</strong>？比如槽 3 对应最大主键是 12 的记录，那如何找到最小记录 9。解决办法是：通过槽 3 找到 槽 2 对应的记录，也就是主键为 8 的记录。主键为 8 的记录的下一条记录就是槽 3 当中主键最小的 9 记录，然后开始向下搜索 2 次，定位到主键为 11 的记录，取出该条记录的信息即为我们想要查找的内容。</li>
+</ul>
+<p>InnoDB 对每个分组中的记录条数都是有规定的，槽内的记录就只有几条：</p>
+<ul>
+<li>第一个分组中的记录只能有 1 条记录；</li>
+<li>最后一个分组中的记录条数范围只能在 1-8 条之间；</li>
+<li>剩下的分组中记录条数范围只能在 4-8 条之间。</li>
+</ul>
+<p>InnoDB 里的 B+ 树中的<strong>每个节点都是一个数据页</strong></p>
+<img src="/2020/03/11/mysql/mysql-B+%E6%A0%91%E6%95%B0%E6%8D%AE%E9%A1%B5.png" class="">
+
+<p>通过上图，我们看出 B+ 树的特点：</p>
+<ul>
+<li>只有叶子节点（最底层的节点）才存放了数据，非叶子节点（其他上层节）仅用来存放目录项作为索引。</li>
+<li>非叶子节点分为不同层次，通过分层来降低每一层的搜索量；</li>
+<li>所有节点按照索引键大小排序，构成一个双向链表，便于范围查询；</li>
+</ul>
+<h2 id="为什么-MySQL-采用-B-树作为索引"><a href="#为什么-MySQL-采用-B-树作为索引" class="headerlink" title="为什么 MySQL 采用 B+ 树作为索引?"></a>为什么 MySQL 采用 B+ 树作为索引?</h2><p>要设计一个 MySQL 的索引数据结构，不仅仅考虑数据结构增删改的时间复杂度，更重要的是要考虑磁盘 I&#x2F;0 的操作次数。因为索引和记录都是存放在硬盘，硬盘是一个非常慢的存储设备，我们在查询数据的时候，最好能在尽可能少的磁盘 I&#x2F;0 的操作次数内完成。</p>
+<p>二分查找树虽然是一个天然的二分结构，能很好的利用二分查找快速定位数据，但是它存在一种极端的情况，每当插入的元素都是树内最大的元素，就会导致二分查找树退化成一个链表，此时查询复杂度就会从 O(logn)降低为 O(n)。</p>
+<p>为了解决二分查找树退化成链表的问题，就出现了自平衡二叉树，保证了查询操作的时间复杂度就会一直维持在 O(logn) 。但是它本质上还是一个二叉树，每个节点只能有 2 个子节点，随着元素的增多，树的高度会越来越高。</p>
+<p>而树的高度决定于磁盘 I&#x2F;O 操作的次数，因为树是存储在磁盘中的，访问每个节点，都对应一次磁盘 I&#x2F;O 操作，也就是说树的高度就等于每次查询数据时磁盘 IO 操作的次数，所以树的高度越高，就会影响查询性能。</p>
+<p>B 树和 B+ 都是通过多叉树的方式，会将树的高度变矮，所以这两个数据结构非常适合检索存于磁盘中的数据。</p>
+<p>但是 MySQL 默认的存储引擎 InnoDB 采用的是 B+ 作为索引的数据结构，原因有：</p>
+<ul>
+<li>B+ 树的非叶子节点不存放实际的记录数据，仅存放索引，因此数据量相同的情况下，相比存储即存索引又存记录的 B 树，B+树的非叶子节点可以存放更多的索引，因此 B+ 树可以比 B 树更「矮胖」，查询底层节点的磁盘 I&#x2F;O次数会更少。</li>
+<li>B+ 树有大量的冗余节点（所有非叶子节点都是冗余索引），这些冗余索引让 B+ 树在插入、删除的效率都更高，比如删除根节点的时候，不会像 B 树那样会发生复杂的树的变化；</li>
+<li>B+ 树叶子节点之间用链表连接了起来，有利于范围查询，而 B 树要实现范围查询，因此只能通过树的遍历来完成范围查询，这会涉及多个节点的磁盘 I&#x2F;O 操作，范围查询效率不如 B+ 树。</li>
+</ul>
+<h2 id="MySQL-单表不要超过-2000W-行"><a href="#MySQL-单表不要超过-2000W-行" class="headerlink" title="MySQL 单表不要超过 2000W 行"></a>MySQL 单表不要超过 2000W 行</h2><p>看下 这个实验 ： 原文链接：<a href="https://my.oschina.net/u/4090830/blog/5559454">https://my.oschina.net/u/4090830/blog/5559454</a></p>
+<p>MySQL 为了提高性能，会将表的索引装载到内存中，在 InnoDB buffer size 足够的情况下，其能完成全加载进内存，查询不会有问题。</p>
+<p>但是，当单表数据库到达某个量级的上限时，导致内存无法存储其索引，使得之后的 SQL 查询会产生磁盘 IO，从而导致性能下降，所以增加硬件配置（比如把内存当磁盘使），可能会带来立竿见影的性能提升哈。</p>
+<p>在保持相同的层级（相似查询性能）的情况下，在行数据大小不同的情况下，其实这个最大建议值也是不同的，而且影响查询性能的还有很多其他因素，比如，数据库版本，服务器配置，sql 的编写等等。（例如2000W是默认 每行数据 1KB左右的，每页大概放15条。当每行放的不只1KB，那每页放的就更少条。对应的，为了使得B+树高度不超过3，对应总行数也要减少）</p>
+<p>索引结构不会影响单表最大行数，2000W 也只是推荐值，超过了这个值可能会导致 B + 树层级更高，影响查询性能。（层级变高代表磁盘IO次数变多）</p>
+<h1 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h1><h2 id="事务有哪些特性？ACID"><a href="#事务有哪些特性？ACID" class="headerlink" title="事务有哪些特性？ACID"></a>事务有哪些特性？ACID</h2><p>要实现事务必须要遵守 4 个特性，分别如下：</p>
+<ul>
+<li><strong>原子性（Atomicity）</strong>：一个事务中的所有操作，要么全部完成，要么全部不完成，不会结束在中间某个环节，而且事务在执行过程中发生错误，会被回滚到事务开始前的状态，就像这个事务从来没有执行过一样，就好比买一件商品，购买成功时，则给商家付了钱，商品到手；购买失败时，则商品在商家手中，消费者的钱也没花出去。</li>
+<li><strong>一致性（Consistency）</strong>：是指事务操作前和操作后，数据满足完整性约束，数据库保持一致性状态。比如，用户 A 和用户 B 在银行分别有 800 元和 600 元，总共 1400 元，用户 A 给用户 B 转账 200 元，分为两个步骤，从 A 的账户扣除 200 元和对 B 的账户增加 200 元。一致性就是要求上述步骤操作后，最后的结果是用户 A 还有 600 元，用户 B 有 800 元，总共 1400 元，而不会出现用户 A 扣除了 200 元，但用户 B 未增加的情况（该情况，用户 A 和 B 均为 600 元，总共 1200 元）。</li>
+<li><strong>隔离性（Isolation）</strong>：数据库允许多个并发事务同时对其数据进行读写和修改的能力，隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致，因为多个事务同时使用相同的数据时，不会相互干扰，每个事务都有一个完整的数据空间，对其他并发事务是隔离的。也就是说，消费者购买商品这个事务，是不影响其他消费者购买的。</li>
+<li><strong>持久性（Durability）</strong>：事务处理结束后，对数据的修改就是永久的，即便系统故障也不会丢失。</li>
+</ul>
+<p>InnoDB 引擎通过什么技术来保证事务的这四个特性的呢？</p>
+<ul>
+<li>持久性是通过 redo log （重做日志）来保证的；</li>
+<li>原子性是通过 undo log（回滚日志） 来保证的；</li>
+<li>隔离性是通过 MVCC（多版本并发控制） 或锁机制来保证的；</li>
+<li>一致性则是通过持久性+原子性+隔离性来保证；</li>
+</ul>
+<h2 id="并行事务会引发什么问题？"><a href="#并行事务会引发什么问题？" class="headerlink" title="并行事务会引发什么问题？"></a>并行事务会引发什么问题？</h2><p>MySQL 服务端是允许多个客户端连接的，这意味着 MySQL 会出现同时处理多个事务的情况。</p>
+<p>那么<strong>在同时处理多个事务的时候，就可能出现</strong></p>
+<ul>
+<li><strong>脏读（dirty read）</strong>——如果一个事务「读到」了另一个「未提交事务修改过的数据」，就意味着发生了「脏读」现象。</li>
+<li><strong>不可重复读（non-repeatable read）</strong>——在一个事务内多次读取同一个数据，如果出现前后两次读到的数据不一样的情况，就意味着发生了「不可重复读」现象</li>
+<li><strong>幻读（phantom read）</strong>——在一个事务内多次查询某个符合查询条件的「记录数量」，如果出现前后两次查询到的记录数量不一样的情况，就意味着发生了「幻读」现象。</li>
+</ul>
+<h2 id="事务的隔离级别有哪些？"><a href="#事务的隔离级别有哪些？" class="headerlink" title="事务的隔离级别有哪些？"></a>事务的隔离级别有哪些？</h2><p>SQL 标准提出了四种隔离级别来规避这些现象，隔离级别越高，性能效率就越低，这四个隔离级别如下：</p>
+<ul>
+<li><strong>读未提交（*read uncommitted*）</strong>，指一个事务还没提交时，它做的变更就能被其他事务看到；</li>
+<li><strong>读提交（*read committed*）</strong>，指一个事务提交之后，它做的变更才能被其他事务看到；</li>
+<li><strong>可重复读（*repeatable read*）</strong>，指一个事务执行过程中看到的数据，一直跟这个事务启动时看到的数据是一致的，<strong>MySQL InnoDB 引擎的默认隔离级别</strong>；</li>
+<li><strong>串行化（*serializable* ）</strong>；会对记录加上读写锁，在多个事务对这条记录进行读写操作时，如果发生了读写冲突的时候，后访问的事务必须等前一个事务执行完成，才能继续执行；</li>
+</ul>
+<h2 id="可重复读是如何工作的？-MVCC工作原理）"><a href="#可重复读是如何工作的？-MVCC工作原理）" class="headerlink" title="可重复读是如何工作的？(MVCC工作原理）"></a>可重复读是如何工作的？(MVCC工作原理）</h2><p><strong>可重复读隔离级别是启动事务时生成一个 Read View，然后整个事务期间都在用这个 Read View</strong>。</p>
+<ul>
+<li>read-view</li>
+<li>聚簇索引记录中的两个隐藏列。</li>
+</ul>
+<h3 id="read-view"><a href="#read-view" class="headerlink" title="read-view"></a>read-view</h3><p>Read View 有四个重要的字段：</p>
+<ul>
+<li>m_ids ：指的是在创建 Read View 时，当前数据库中「活跃事务」的<strong>事务 id 列表</strong>，注意是一个列表，<strong>“活跃事务”指的就是，启动了但还没提交的事务</strong>。</li>
+<li>min_trx_id ：指的是在创建 Read View 时，当前数据库中「活跃事务」中事务 <strong>id 最小的事务</strong>，也就是 m_ids 的最小值。</li>
+<li>max_trx_id ：这个并不是 m_ids 的最大值，而是<strong>创建 Read View 时当前数据库中应该给下一个事务的 id 值</strong>，也就是全局事务中最大的事务 id 值 + 1；</li>
+<li>creator_trx_id ：指的是<strong>创建该 Read View 的事务的事务 id</strong>。</li>
+</ul>
+<h3 id="隐藏列"><a href="#隐藏列" class="headerlink" title="隐藏列"></a>隐藏列</h3><p>对于使用 InnoDB 存储引擎的数据库表，它的聚簇索引记录中都包含下面两个隐藏列：</p>
+<ul>
+<li>trx_id，当一个事务对某条聚簇索引记录进行改动时，就会<strong>把该事务的事务 id 记录在 trx_id 隐藏列里</strong>；</li>
+<li>roll_pointer，每次对某条聚簇索引记录进行改动时，都会把旧版本的记录写入到 undo 日志中，然后<strong>这个隐藏列是个指针，指向每一个旧版本记录</strong>，于是就可以通过它找到修改前的记录。</li>
+</ul>
+<img src="/2020/03/11/mysql/mysql-%E9%9A%90%E8%97%8F%E5%88%97.drawio.png" class="">
+
+
+
+<p>一个事务去访问记录的时候，除了自己的更新记录总是可见之外，还有这几种情况：</p>
+<ul>
+<li><p>如果记录的 trx_id 值小于 Read View 中的 <code>min_trx_id</code> 值，表示这个版本的记录是在创建 Read View <strong>前</strong>已经提交的事务生成的，所以该版本的记录对当前事务<strong>可见</strong>。</p>
+</li>
+<li><p>如果记录的 trx_id 值大于等于 Read View 中的 <code>max_trx_id</code> 值，表示这个版本的记录是在创建 Read View <strong>后</strong>才启动的事务生成的，所以该版本的记录对当前事务<strong>不可见</strong>。</p>
+</li>
+<li><p>如果记录的 trx_id 值在 Read View 的min_trx_id和max_trx_id之间，需要判断 trx_id 是否在 m_ids 列表中：</p>
+<ul>
+<li>如果记录的 trx_id <strong>在</strong> <code>m_ids</code> 列表中，表示生成该版本记录的活跃事务依然活跃着（还没提交事务），所以该版本的记录对当前事务<strong>不可见</strong>。（哪怕这些活跃事务后面提交了。在本事务创建的那一时刻是还没提交的。就当做看不见。）</li>
+<li>如果记录的 trx_id <strong>不在</strong> <code>m_ids</code>列表中，表示生成该版本记录的活跃事务已经被提交，所以该版本的记录对当前事务<strong>可见</strong>。</li>
+</ul>
+</li>
+</ul>
+<p>本质就是记录在创建事务那一时刻的<strong>已提交</strong>和<strong>未提交（包括为开始）</strong>，自己的事务只关注创建事务那一个时间点的已提交和自己的事务。后续每次查询，拿这个行的<strong>trx_id</strong>检查，只要不是自己的或者不是”创建事务那个时刻的已提交”都进行回滚。而怎么判断是不是自己的？对比row trx_id 和自己的 transaction_id 就行，那怎么判断 是否是当时的已提交呢？已提交有很多。不可能一个个去看。所以每个可重复读事务才会维护一个数组保存未提交事务id。</p>
+<h3 id="MVCC工作流程"><a href="#MVCC工作流程" class="headerlink" title="MVCC工作流程"></a>MVCC工作流程</h3><p>事务 B 第一次读小林的账户余额记录，在找到记录后，它会先看这条记录的 trx_id，此时<strong>发现 trx_id 为 50，比事务 B 的 Read View 中的 min_trx_id 值（51）还小，这意味着修改这条记录的事务早就在事务 B 启动前提交过了，所以该版本的记录对事务 B 可见的</strong>，也就是事务 B 可以获取到这条记录。</p>
+<p>接着，事务 A 通过 update 语句将这条记录修改了（还未提交事务），将小林的余额改成 200 万，这时 MySQL 会记录相应的 undo log，并以链表的方式串联起来，形成<strong>版本链</strong>，如下图：</p>
+<img src="/2020/03/11/mysql/mysql-%E4%BA%8B%E5%8A%A1ab%E7%9A%84%E8%A7%86%E5%9B%BE.png" class="">
+
+<p>你可以在上图的「记录的字段」看到，由于事务 A 修改了该记录，以前的记录就变成旧版本记录了，于是最新记录和旧版本记录通过链表的方式串起来，而且最新记录的 trx_id 是事务 A 的事务 id（trx_id &#x3D; 51）。</p>
+<p>然后事务 B 第二次去读取该记录，<strong>发现这条记录的 trx_id 值为 51，在事务 B 的 Read View 的 min_trx_id 和 max_trx_id 之间，则需要判断 trx_id 值是否在 m_ids 范围内，判断的结果是在的，那么说明这条记录是被还未提交的事务修改的，这时事务 B 并不会读取这个版本的记录。而是沿着 undo log 链条往下找旧版本的记录，直到找到 trx_id 「小于」事务 B 的 Read View 中的 min_trx_id 值的第一条记录</strong>，所以事务 B 能读取到的是 trx_id 为 50 的记录，也就是小林余额是 100 万的这条记录。</p>
+<p>最后，当事物 A 提交事务后，<strong>由于隔离级别时「可重复读」，所以事务 B 再次读取记录时，还是基于启动事务时创建的 Read View 来判断当前版本的记录是否可见。所以，即使事物 A 将小林余额修改为 200 万并提交了事务， 事务 B 第三次读取记录时，读到的记录都是小林余额是 100 万的这条记录</strong>。</p>
+<p>就是通过这样的方式实现了，「可重复读」隔离级别下在事务期间读到的记录都是事务启动前的记录。</p>
+<h3 id="读提交是如何工作的？"><a href="#读提交是如何工作的？" class="headerlink" title="读提交是如何工作的？"></a>读提交是如何工作的？</h3><p><strong>读提交隔离级别是在每次读取数据时，都会生成一个新的 Read View</strong>。</p>
+<p>也意味着，事务期间的多次读取同一条数据，前后两次读的数据可能会出现不一致，因为可能这期间另外一个事务修改了该记录，并提交了事务。</p>
+<p>和 可重复读类似，只不过这个视图 不是事务创建时的。视图维护的数组每次都在变。每次修改都要去看当前活跃的事务id</p>
+<p>读的概念</p>
+<ul>
+<li>针对<strong>快照读</strong>（普通 select 语句），是<strong>通过 MVCC 方式解决了幻读</strong>，因为可重复读隔离级别下，事务执行过程中看到的数据，一直跟这个事务启动时看到的数据是一致的，即使中途有其他事务插入了一条数据，是查询不出来这条数据的，所以就很好了避免幻读问题。</li>
+<li>针对<strong>当前读</strong>（select … for update 等语句），是<strong>通过 next-key lock（记录锁+间隙锁）方式解决了幻读</strong>，因为当执行 select … for update 语句的时候，会加上 next-key lock，如果有其他事务在 next-key lock 锁范围内插入了一条记录，那么这个插入语句就会被阻塞，无法成功插入，所以就很好了避免幻读问题。</li>
+</ul>
+<h4 id="开启事务"><a href="#开启事务" class="headerlink" title="开启事务"></a>开启事务</h4><p>执行「开始事务」命令，并不意味着启动了事务。在 MySQL 有两种开启事务的命令，分别是：</p>
+<ul>
+<li>第一种：begin&#x2F;start transaction 命令；</li>
+<li>第二种：start transaction with consistent snapshot 命令；</li>
+</ul>
+<p>这两种开启事务的命令，事务的启动时机是不同的：</p>
+<ul>
+<li>执行了 begin&#x2F;start transaction 命令后，并不代表事务启动了。只有在执行这个命令后，执行了增删查改操作的 SQL 语句，才是事务真正启动的时机；</li>
+<li>执行了 start transaction with consistent snapshot 命令，就会马上启动事务。</li>
+</ul>
+<h1 id="锁"><a href="#锁" class="headerlink" title="锁"></a>锁</h1><p>全局锁</p>
+<p>表级锁</p>
+<p>行级锁</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">flush tables with <span class="built_in">read</span> lock <span class="comment">### 锁住</span></span><br><span class="line"></span><br><span class="line">unlock tables <span class="comment">### 释放</span></span><br></pre></td></tr></table></figure>
+
+<p>全局锁主要应用于做<strong>全库逻辑备份</strong>，这样在备份数据库期间，不会因为数据或表结构的更新，而出现备份文件的数据与预期的不一样。</p>
+<hr>
+<h2 id="表级锁"><a href="#表级锁" class="headerlink" title="表级锁"></a>表级锁</h2><h3 id="表锁"><a href="#表锁" class="headerlink" title="表锁"></a>表锁</h3><p>获取表锁</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">//表级别的共享锁，也就是读锁；</span><br><span class="line">lock tables t_student <span class="built_in">read</span>;</span><br><span class="line"></span><br><span class="line">//表级别的独占锁，也就是写锁；</span><br><span class="line">lock tables t_stuent write;</span><br></pre></td></tr></table></figure>
+
+<p>释放表锁</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">unlock tables</span><br></pre></td></tr></table></figure>
+
+<p>当会话退出后，也会释放所有表锁。</p>
+<hr>
+<h3 id="元数据锁"><a href="#元数据锁" class="headerlink" title="元数据锁"></a>元数据锁</h3><p>再来说说<strong>元数据锁</strong>（MDL）。</p>
+<p>我们不需要显示的使用 MDL，因为当我们对数据库表进行操作时，会自动给这个表加上 MDL：</p>
+<ul>
+<li>对一张表进行 CRUD 操作时，加的是 <strong>MDL 读锁</strong>；</li>
+<li>对一张表做结构变更操作的时候，加的是 <strong>MDL 写锁</strong>；</li>
+</ul>
+<p>MDL 是为了保证当用户对表执行 CRUD 操作时，防止其他线程对这个表结构做了变更。</p>
+<p>当有线程在执行 select 语句（ 加 MDL 读锁）的期间，如果有其他线程要更改该表的结构（ 申请 MDL 写锁），那么将会被阻塞，直到执行完 select 语句（ 释放 MDL 读锁）。</p>
+<p>反之，当有线程对表结构进行变更（ 加 MDL 写锁）的期间，如果有其他线程执行了 CRUD 操作（ 申请 MDL 读锁），那么就会被阻塞，直到表结构变更完成（ 释放 MDL 写锁）。</p>
+<hr>
+<p>MDL 不需要显示调用，那它是在什么时候释放的?</p>
+<p>MDL 是在事务提交后才会释放，这意味着<strong>事务执行期间，MDL 是一直持有的</strong>。</p>
+<p>那如果数据库有一个长事务（所谓的长事务，就是开启了事务，但是一直还没提交），那在对表结构做变更操作的时候，可能会发生意想不到的事情，比如下面这个顺序的场景：</p>
+<ol>
+<li>首先，线程 A 先启用了事务（但是一直不提交），然后执行一条 select 语句，此时就先对该表加上 MDL 读锁；</li>
+<li>然后，线程 B 也执行了同样的 select 语句，此时并不会阻塞，因为「读读」并不冲突；</li>
+<li>接着，线程 C 修改了表字段，此时由于线程 A 的事务并没有提交，也就是 MDL 读锁还在占用着，这时线程 C 就无法申请到 MDL 写锁，就会被阻塞，</li>
+</ol>
+<p>那么在线程 C 阻塞后，后续有对该表的 select 语句，就都会被阻塞，如果此时有大量该表的 select 语句的请求到来，就会有大量的线程被阻塞住，这时数据库的线程很快就会爆满了。</p>
+<hr>
+<p>为什么线程 C 因为申请不到 MDL 写锁，而导致后续的申请读锁的查询操作也会被阻塞？</p>
+<p>这是因为申请 MDL 锁的操作会形成一个队列，队列中<strong>写锁获取优先级高于读锁</strong>，一旦出现 MDL 写锁等待，会阻塞后续该表的所有 CRUD 操作。</p>
+<p>所以为了能安全的对表结构进行变更，在对表结构变更前，先要看看数据库中的长事务，是否有事务已经对表加上了 MDL 读锁，如果可以考虑 kill 掉这个长事务，然后再做表结构的变更。</p>
+<hr>
+<h3 id="意向锁"><a href="#意向锁" class="headerlink" title="意向锁 *"></a>意向锁 *</h3><ul>
+<li>在使用 InnoDB 引擎的表里对某些记录加上「共享锁」之前，需要先在表级别加上一个「意向共享锁」；</li>
+<li>在使用 InnoDB 引擎的表里对某些纪录加上「独占锁」之前，需要先在表级别加上一个「意向独占锁」；</li>
+</ul>
+<p>也就是，当执行插入、更新、删除操作，需要先对表加上「意向独占锁」，然后对该记录加独占锁。</p>
+<p>而普通的 select 是不会加行级锁的，普通的 select 语句是利用 MVCC 实现一致性读，是无锁的。</p>
+<p>不过，select 也是可以对记录加共享锁和独占锁的，具体方式如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">//先在表上加上意向共享锁，然后对读取的记录加共享锁</span><br><span class="line">select ... lock <span class="keyword">in</span> share mode;</span><br><span class="line"></span><br><span class="line">//先在表上加上意向独占锁，然后对读取的记录加独占锁</span><br><span class="line">select ... <span class="keyword">for</span> update;</span><br></pre></td></tr></table></figure>
+
+<p><strong>意向共享锁和意向独占锁是表级锁，不会和行级的共享锁和独占锁发生冲突，而且意向锁之间也不会发生冲突，只会和共享表锁（*lock tables … read*）和独占表锁（*lock tables … write*）发生冲突。</strong></p>
+<p>表锁和行锁是满足读读共享、读写互斥、写写互斥的。</p>
+<p>如果没有「意向锁」，那么加「独占表锁」时，就需要遍历表里所有记录，查看是否有记录存在独占锁，这样效率会很慢。</p>
+<p>那么有了「意向锁」，由于在对记录加独占锁前，先会加上表级别的意向独占锁，那么在加「独占表锁」时，直接查该表是否有意向独占锁，如果有就意味着表里已经有记录被加了独占锁，这样就不用去遍历表里的记录。</p>
+<p>所以，<strong>意向锁的目的是为了快速判断表里是否有记录被加锁</strong>。</p>
+<hr>
+<h3 id="AUTO-INC-锁"><a href="#AUTO-INC-锁" class="headerlink" title="AUTO-INC 锁"></a>AUTO-INC 锁</h3><p>最后，说说 <strong>AUTO-INC 锁</strong>。</p>
+<p>在为某个字段声明 <code>AUTO_INCREMENT</code> 属性时，之后可以在插入数据时，可以不指定该字段的值，数据库会自动给该字段赋值递增的值，这主要是通过 AUTO-INC 锁实现的。</p>
+<p>AUTO-INC 锁是特殊的表锁机制，锁<strong>不是再一个事务提交后才释放，而是再执行完插入语句后就会立即释放</strong>。</p>
+<p><strong>在插入数据时，会加一个表级别的 AUTO-INC 锁</strong>，然后为被 <code>AUTO_INCREMENT</code> 修饰的字段赋值递增的值，等插入语句执行完成后，才会把 AUTO-INC 锁释放掉。</p>
+<p>那么，一个事务在持有 AUTO-INC 锁的过程中，其他事务的如果要向该表插入语句都会被阻塞，从而保证插入数据时，被 <code>AUTO_INCREMENT</code> 修饰的字段的值是<strong>连续递增</strong>的。</p>
+<p>但是， AUTO-INC 锁再对大量数据进行插入的时候，会影响插入性能，因为另一个事务中的插入会被阻塞。</p>
+<p>因此， 在 MySQL 5.1.22 版本开始，InnoDB 存储引擎提供了一种<strong>轻量级的锁</strong>来实现自增。</p>
+<p>一样也是在插入数据的时候，会为被 <code>AUTO_INCREMENT</code> 修饰的字段加上轻量级锁，<strong>然后给该字段赋值一个自增的值，就把这个轻量级锁释放了，而不需要等待整个插入语句执行完后才释放锁</strong>。</p>
+<p>InnoDB 存储引擎提供了个 innodb_autoinc_lock_mode 的系统变量，是用来控制选择用 AUTO-INC 锁，还是轻量级的锁。</p>
+<ul>
+<li>当 innodb_autoinc_lock_mode &#x3D; 0，就采用 AUTO-INC 锁；</li>
+<li>当 innodb_autoinc_lock_mode &#x3D; 2，就采用轻量级锁；</li>
+<li>当 innodb_autoinc_lock_mode &#x3D; 1，这个是默认值，两种锁混着用，如果能够确定插入记录的数量就采用轻量级锁，不确定时就采用 AUTO-INC 锁。</li>
+</ul>
+<p>不过，当 innodb_autoinc_lock_mode &#x3D; 2 是性能最高的方式，但是会带来一定的问题。因为并发插入的存在，在每次插入时，自增长的值可能不是连续的，<strong>这在有主从复制的场景中是不安全的</strong>。</p>
+<p>例如事务会滚会导致主键增长不是连续的。（但是还是可以确保递增的）（例如事务A insert，虽然另一个事务B要insert的时候被间隙锁阻塞，但是id已经分配，等事务A回滚，B的insert写入，中间事务A原本的那个id位置就是空的）</p>
+<hr>
+<h2 id="行级锁"><a href="#行级锁" class="headerlink" title="行级锁"></a>行级锁</h2><p>在mysql innodb中 共享锁的符号是S ，独占锁的符号是X， 所以有时候用S锁和X锁来指代。</p>
+<p>前面也提到，普通的 select 语句是不会对记录加锁的，因为它属于快照读。如果要在查询时对记录加行锁，可以使用下面这两个方式，这种查询会加锁的语句称为<strong>锁定读</strong>。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">//对读取的记录加共享锁</span><br><span class="line">select ... lock <span class="keyword">in</span> share mode;</span><br><span class="line"></span><br><span class="line">//对读取的记录加独占锁</span><br><span class="line">select ... <span class="keyword">for</span> update;</span><br></pre></td></tr></table></figure>
+
+<p>上面的语句使用必须在事务中，<strong>因为当事务提交了，锁就会被释放</strong>，所以在使用这两条语句的时候，要加上 begin、start transaction 或者 set autocommit &#x3D; 0。</p>
+<p>共享锁（S锁）满足读读共享，读写互斥。独占锁（X锁）满足写写互斥、读写互斥。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>X</th>
+<th>S</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>X</td>
+<td>冲突</td>
+<td>冲突</td>
+</tr>
+<tr>
+<td>S</td>
+<td>冲突</td>
+<td>不冲突</td>
+</tr>
+</tbody></table>
+<p>行级锁的类型主要有三类：</p>
+<ul>
+<li>Record Lock，记录锁，也就是仅仅把一条记录锁上；</li>
+<li>Gap Lock，间隙锁，锁定一个范围，但是不包含记录本身；</li>
+<li>Next-Key Lock：Record Lock + Gap Lock 的组合，锁定一个范围，并且锁定记录本身。</li>
+</ul>
+<h3 id="Record-Lock"><a href="#Record-Lock" class="headerlink" title="Record Lock"></a>Record Lock</h3><p>Record Lock 称为记录锁，锁住的是一条记录。而且记录锁是有 S 锁和 X 锁之分的：</p>
+<ul>
+<li>当一个事务对一条记录加了 S 型记录锁后，其他事务也可以继续对该记录加 S 型记录锁（S 型与 S 锁兼容），但是不可以对该记录加 X 型记录锁（S 型与 X 锁不兼容）;</li>
+<li>当一个事务对一条记录加了 X 型记录锁后，其他事务既不可以对该记录加 S 型记录锁（S 型与 X 锁不兼容），也不可以对该记录加 X 型记录锁（X 型与 X 锁不兼容）。</li>
+</ul>
+<p>举个例子，当一个事务执行了下面这条语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql &gt; begin;</span><br><span class="line">mysql &gt; select * from t_test where id = 1 for update;</span><br></pre></td></tr></table></figure>
+
+<p>就是对 t_test 表中主键 id 为 1 的这条记录加上 X 型的记录锁，这样其他事务就无法对这条记录进行修改了。</p>
+<p>当事务执行 commit 后，事务过程中生成的锁都会被释放。</p>
+<h3 id="Gap-Lock"><a href="#Gap-Lock" class="headerlink" title="Gap Lock"></a>Gap Lock</h3><p>Gap Lock 称为间隙锁，只存在于可重复读隔离级别，目的是为了解决可重复读隔离级别下幻读的现象。</p>
+<p>假设，表中有一个范围 id 为（3，5）间隙锁，那么其他事务就无法插入 id &#x3D; 4 这条记录了，这样就有效的防止幻读现象的发生。</p>
+<p>间隙锁虽然存在 X 型间隙锁和 S 型间隙锁，但是并没有什么区别，<strong>间隙锁之间是兼容的，即两个事务可以同时持有包含共同间隙范围的间隙锁，并不存在互斥关系，因为间隙锁的目的是防止插入幻影记录而提出的</strong>。（但是有一点要注意，<strong>next-key lock 是包含间隙锁+记录锁的，如果一个事务获取了 X 型的 next-key lock，那么另外一个事务在获取相同范围的 X 型的 next-key lock 时，是会被阻塞的</strong>。也就是只有间隙锁才不会互斥，例如 （a,b）兼容，（a,b] 不兼容）</p>
+<h3 id="Next-Key-Lock"><a href="#Next-Key-Lock" class="headerlink" title="Next-Key Lock"></a>Next-Key Lock</h3><p>Next-Key Lock 称为临键锁，是 Record Lock + Gap Lock 的组合，锁定一个范围，并且锁定记录本身。</p>
+<p>假设，表中有一个范围 id 为（3，5] 的 next-key lock，那么其他事务即不能插入 id &#x3D; 4 记录，也不能修改 id &#x3D; 5 这条记录。</p>
+<p>所以，next-key lock 即能保护该记录，又能阻止其他事务将新纪录插入到被保护记录前面的间隙中。</p>
+<p><strong>next-key lock 是包含间隙锁+记录锁的，如果一个事务获取了 X 型的 next-key lock，那么另外一个事务在获取相同范围的 X 型的 next-key lock 时，是会被阻塞的</strong>。</p>
+<p>比如，一个事务持有了范围为 (1, 10] 的 X 型的 next-key lock，那么另外一个事务在获取相同范围的 X 型的 next-key lock 时，就会被阻塞。</p>
+<p>虽然相同范围的间隙锁是多个事务相互兼容的，但对于记录锁，我们是要考虑 X 型与 S 型关系，X 型的记录锁与 X 型的记录锁是冲突的。</p>
+<h3 id="插入意向锁"><a href="#插入意向锁" class="headerlink" title="插入意向锁 *"></a>插入意向锁 *</h3><p>一个事务在插入一条记录的时候，需要判断插入位置是否已被其他事务加了间隙锁（next-key lock 也包含间隙锁）。</p>
+<p>如果有的话，插入操作就会发生<strong>阻塞</strong>，直到拥有间隙锁的那个事务提交为止（释放间隙锁的时刻），在此期间会生成一个<strong>插入意向锁</strong>，表明有事务想在某个区间插入新记录，但是现在处于等待状态。</p>
+<p>当事务 A 还没提交的时候，事务 B 向该表插入一条 id &#x3D; 4 的新记录，这时会判断到插入的位置已经被事务 A 加了间隙锁，于是事物 B 会生成一个插入意向锁，然后将锁的状态设置为等待状态（<em>PS：MySQL 加锁时，是先生成锁结构，然后设置锁的状态，如果锁状态是等待状态，并不是意味着事务成功获取到了锁，只有当锁状态为正常状态时，才代表事务成功获取到了锁</em>），此时事务 B 就会发生阻塞，直到事务 A 提交了事务。</p>
+<p>插入意向锁名字虽然有意向锁，但是它并<strong>不是意向锁，它是一种特殊的间隙锁，属于行级别锁</strong>。<strong>该锁只用于并发插入操作</strong>。</p>
+<p>如果说间隙锁锁住的是一个区间，那么「插入意向锁」锁住的就是一个点。因而从这个角度来说，插入意向锁确实是一种特殊的间隙锁。</p>
+<p>插入意向锁与间隙锁的另一个非常重要的差别是：尽管「插入意向锁」也属于间隙锁，但两个事务却不能在同一时间内，一个拥有间隙锁，另一个拥有该间隙区间内的插入意向锁（当然，插入意向锁如果不在间隙锁区间内则是可以的）。</p>
+<p>插入意向锁的生成时机：</p>
+<ul>
+<li>每插入一条新记录，都需要看一下待插入记录的下一条记录上是否已经被加了间隙锁，如果已加间隙锁，此时会生成一个插入意向锁，然后锁的状态设置为等待状态（<em>PS：MySQL 加锁时，是先生成锁结构，然后设置锁的状态，如果锁状态是等待状态，并不是意味着事务成功获取到了锁，只有当锁状态为正常状态时，才代表事务成功获取到了锁</em>），现象就是 Insert 语句会被阻塞。</li>
+</ul>
+<hr>
+<h2 id="MySQL-是怎么加锁的？"><a href="#MySQL-是怎么加锁的？" class="headerlink" title="MySQL 是怎么加锁的？"></a>MySQL 是怎么加锁的？</h2><p>主要关注三个点：是否唯一索引列；是等值查找还是范围查找；是否存在对应节点记录</p>
+<p>对记录加锁时，<strong>加锁的基本单位是 next-key lock</strong>，它是由记录锁和间隙锁组合而成的，<strong>next-key lock 是前开后闭区间，而间隙锁是前开后开区间</strong>。</p>
+<p>next-key lock 在一些场景下会退化成记录锁或间隙锁。</p>
+<p>唯一索引等值查询：</p>
+<ul>
+<li>当查询的记录是存在的，next-key lock 会退化成「记录锁」。</li>
+<li>当查询的记录是不存在的，next-key lock 会退化成「间隙锁」。</li>
+</ul>
+<p>非唯一索引等值查询：</p>
+<ul>
+<li>当查询的记录存在时，除了会加 next-key lock 外，还额外加间隙锁，也就是会加两把锁。</li>
+<li>当查询的记录不存在时，只会加 next-key lock，然后会退化为间隙锁，也就是只会加一把锁。</li>
+</ul>
+<p>非唯一索引和主键索引的范围查询的加锁规则不同之处在于：</p>
+<ul>
+<li>唯一索引在满足一些条件的时候，next-key lock 退化为间隙锁和记录锁。</li>
+<li>非唯一索引范围查询，next-key lock 不会退化为间隙锁和记录锁。</li>
+</ul>
+<p>小技巧：看情况</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">直接先按照next-key方式吧所有能覆盖查找范围的节点找到(如果最右边刚好是64的话还要继续往右找一个节点)，例如：</span><br><span class="line">(8,16],(16,32],(32,64] <span class="comment">## 如果是 where x&gt;9 and x&lt;=64 则多找一个 (64,128]</span></span><br><span class="line">然后</span><br><span class="line">等值唯一存在：左边间隙拿掉</span><br><span class="line">等值唯一不存在：右边记录锁拿掉</span><br><span class="line">等值非唯一存在：右边加上间隙</span><br><span class="line">等值非唯一不存在：右边记录锁拿掉</span><br><span class="line"></span><br><span class="line">范围唯一存在：左边间隙拿掉</span><br><span class="line">范围唯一不存在：右边记录锁拿掉</span><br><span class="line">范围非唯一存在：不变</span><br><span class="line">范围非唯一不存在：不变</span><br><span class="line">还有就是如果右边是 supernum 是不会退化的 ，例如：(1024,supernum] 在 非唯一中 还是 (1024,supernum] 不会 (1024,supernum) </span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<hr>
+<h2 id="update-没加索引会怎样？"><a href="#update-没加索引会怎样？" class="headerlink" title="update 没加索引会怎样？"></a>update 没加索引会怎样？</h2><p> InnoDB 存储引擎自己实现了行锁，通过 next-key 锁（记录锁和间隙锁的组合）来锁住记录本身和记录之间的“间隙”，防止其他事务在这个记录之间插入新的记录，从而避免了幻读现象。</p>
+<p>当我们执行 update 语句时，实际上是会对记录加独占锁（X 锁）的，如果其他事务对持有独占锁的记录进行修改时是会被阻塞的。另外，这个锁并不是执行完 update 语句就会释放的，而是会等事务结束时才会释放。</p>
+<p>在 InnoDB 事务中，对记录加锁带基本单位是 next-key 锁，但是会因为一些条件会退化成间隙锁，或者记录锁。加锁的位置准确的说，<strong>锁是加在索引上的而非行上</strong>。</p>
+<p>比如，在 update 语句的 where 条件使用了唯一索引，那么 next-key 锁会退化成记录锁，也就是只会给一行记录加锁。</p>
+<p><strong>在 update 语句的 where 条件没有使用索引，就会全表扫描，于是就会对所有记录加上 next-key 锁（记录锁 + 间隙锁），相当于把整个表锁住了</strong>。（全表扫描并加上next-key锁，并非加上表锁）</p>
+<p>当在数据量非常大的数据库表执行 update 语句时，如果没有使用索引，就会给全表的加上 next-key 锁， 那么锁就会持续很长一段时间，直到事务结束，而这期间除了 <code>select ... from</code>语句，其他语句都会被锁住不能执行，业务会因此停滞</p>
+<p>那 update 语句的 where 带上索引就能避免全表记录加锁了吗？</p>
+<p>并不是。</p>
+<p><strong>关键还得看这条语句在执行过程种，优化器最终选择的是索引扫描，还是全表扫描，如果走了全表扫描，就会对全表的记录加锁了</strong>。</p>
+<hr>
+<p>如何避免这种事故的发生？</p>
+<p>可以将 MySQL 里的 <code>sql_safe_updates</code> 参数设置为 1，开启安全更新模式。</p>
+<p>当 sql_safe_updates 设置为 1 时。</p>
+<p>update 语句必须满足如下条件之一才能执行成功：</p>
+<ul>
+<li>使用 where，并且 where 条件中必须有索引列；</li>
+<li>使用 limit；</li>
+<li>同时使用 where 和 limit，此时 where 条件中可以没有索引列；</li>
+</ul>
+<p>delete 语句必须满足以下条件能执行成功：</p>
+<ul>
+<li>同时使用 where 和 limit，此时 where 条件中可以没有索引列；</li>
+</ul>
+<p>如果 where 条件带上了索引列，但是优化器最终扫描选择的是全表，而不是索引的话，我们可以使用 <code>force index([index_name])</code> 可以告诉优化器使用哪个索引，以此避免有几率锁全表带来的隐患。</p>
+<hr>
+<h2 id="MySQL-记录锁-间隙锁可以防止删除操作而导致的幻读吗？"><a href="#MySQL-记录锁-间隙锁可以防止删除操作而导致的幻读吗？" class="headerlink" title="MySQL 记录锁+间隙锁可以防止删除操作而导致的幻读吗？"></a>MySQL 记录锁+间隙锁可以防止删除操作而导致的幻读吗？</h2><p>接下来，来验证「 MySQL 记录锁+间隙锁<strong>可以防止</strong>删除操作而导致的幻读问题」的结论。</p>
+<p>实验环境：MySQL 8.0 版本，可重复读隔离级。</p>
+<p>现在有一张用户表（iron_student），表里<strong>只有一个主键索引</strong>，表里有以下行数据：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; select * from iron_student;</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">| id | name   | age  | score |</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">|  1 | name_1 |   18 |    10 |</span><br><span class="line">|  2 | name_2 |   19 |    20 |</span><br><span class="line">|  3 | name_3 |   20 |    30 |</span><br><span class="line">|  4 | name_4 |   22 |    40 |</span><br><span class="line">|  5 | name_5 |   16 |    50 |</span><br><span class="line">|  6 | name_6 |   16 |    60 |</span><br><span class="line">|  7 | name_7 |   23 |    60 |</span><br><span class="line">|  8 | name_8 |   31 |    80 |</span><br><span class="line">|  9 | name_9 |   12 |    90 |</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">9 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>现在有一个 A 事务执行了一条查询语句，查询到年龄大于 20 岁的用户共有 6 条行记录。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; begin;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; select * from iron_student where age &gt; 20 for update;</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">| id | name   | age  | score |</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">|  4 | name_4 |   22 |    40 |</span><br><span class="line">|  7 | name_7 |   23 |    60 |</span><br><span class="line">|  8 | name_8 |   31 |    80 |</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">3 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>然后， B 事务执行了一条删除 id &#x3D; 4 的语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; delete from iron_student where id = 4 limit 1;</span><br><span class="line">## 阻塞</span><br></pre></td></tr></table></figure>
+
+
+
+<p>此时，B 事务的删除语句就陷入了<strong>等待状态</strong>，说明是无法进行删除的。</p>
+<p>因此，MySQL 记录锁+间隙锁<strong>可以防止</strong>删除操作而导致的幻读问题。</p>
+<p>问题来了，A 事务在执行 select … for update 语句时，具体加了什么锁呢？</p>
+<p>我们可以通过 <code>select * from performance_schema.data_locks\G;</code> 这条语句，查看事务执行 SQL 过程中加了什么锁。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; select * from performance_schema.data_locks\G;</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:1063:140036469222048</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: NULL</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469222048</span><br><span class="line">            LOCK_TYPE: TABLE   ### 表级锁</span><br><span class="line">            LOCK_MODE: IX      ### 这个是插入独占锁，因为 for update 语句加上的。如果是 lock in share mode 则是 IS</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: NULL</span><br><span class="line">*************************** 2. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:1:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: supremum pseudo-record</span><br><span class="line">*************************** 3. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:2:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 1</span><br><span class="line">*************************** 4. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:3:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 2</span><br><span class="line">*************************** 5. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:4:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 3</span><br><span class="line">*************************** 6. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:5:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 4</span><br><span class="line">*************************** 7. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:6:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 5</span><br><span class="line">*************************** 8. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:7:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 6</span><br><span class="line">*************************** 9. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:8:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 7</span><br><span class="line">*************************** 10. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:9:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 8</span><br><span class="line">*************************** 11. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:10:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2869</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 37</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD ### 行级锁</span><br><span class="line">            LOCK_MODE: X    ## 结合上面 LOCK_TYPE,这里是 next-key-lock</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 9    ## （9的上一个,9] ,结合LOCK_MODE为x，说明没有退化为间隙锁或者行锁。</span><br><span class="line">11 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>从上面输出的信息可以看到，共加了两种不同粒度的锁，分别是：</p>
+<ul>
+<li>表锁（<code>LOCK_TYPE: TABLE</code>）：X 类型的意向锁；</li>
+<li>行锁（<code>LOCK_TYPE: RECORD</code>）：X 类型的 next-key 锁；</li>
+</ul>
+<p>这里我们重点关注「行锁」，图中 <code>LOCK_TYPE</code> 中的 <code>RECORD</code> 表示行级锁，而不是记录锁的意思：</p>
+<ul>
+<li>如果 LOCK_MODE 为 <code>X</code>，说明是 next-key 锁；</li>
+<li>如果 LOCK_MODE 为 <code>X, REC_NOT_GAP</code>，说明是记录锁；</li>
+<li>如果 LOCK_MODE 为 <code>X, GAP</code>，说明是间隙锁；</li>
+</ul>
+<p>然后通过 <code>LOCK_DATA</code> 信息，可以确认 next-key 锁的范围，具体怎么确定呢？</p>
+<ul>
+<li>根据我的经验，如果 LOCK_MODE 是 next-key 锁或者间隙锁，那么 <strong>LOCK_DATA 就表示锁的范围最右值</strong>，而锁范围的最左值为 LOCK_DATA 的上一条记录的值。</li>
+</ul>
+<p>因此，此时事务 A 在主键索引（<code>INDEX_NAME : PRIMARY</code>）上加了 10 个 next-key 锁，如下：</p>
+<ul>
+<li>X 型的 next-key 锁，范围：(-∞, 1]</li>
+<li>X 型的 next-key 锁，范围：(1, 2]</li>
+<li>X 型的 next-key 锁，范围：(2, 3]</li>
+<li>X 型的 next-key 锁，范围：(3, 4]</li>
+<li>X 型的 next-key 锁，范围：(4, 5]</li>
+<li>X 型的 next-key 锁，范围：(5, 6]</li>
+<li>X 型的 next-key 锁，范围：(6, 7]</li>
+<li>X 型的 next-key 锁，范围：(7, 8]</li>
+<li>X 型的 next-key 锁，范围：(8, 9]</li>
+<li>X 型的 next-key 锁，范围：(9, +∞]</li>
+</ul>
+<p><strong>这相当于把整个表给锁住了，其他事务在对该表进行增、删、改操作的时候都会被阻塞</strong>。</p>
+<p>只有在事务 A 提交了事务，事务 A 执行过程中产生的锁才会被释放。</p>
+<p>为什么只是查询年龄 20 岁以上行记录，而把整个表给锁住了呢？</p>
+<p>这是因为事务 A 的这条查询语句是<strong>全表扫描，锁是在遍历索引的时候加上的，并不是针对输出的结果加锁</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; explain select * from iron_student where age &gt; 20 for update\G;</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">           id: 1</span><br><span class="line">  select_type: SIMPLE</span><br><span class="line">        table: iron_student</span><br><span class="line">   partitions: NULL</span><br><span class="line">         type: ALL   ####### 这里表示全表扫描（因为age没有索引）</span><br><span class="line">possible_keys: NULL</span><br><span class="line">          key: NULL</span><br><span class="line">      key_len: NULL</span><br><span class="line">          ref: NULL</span><br><span class="line">         rows: 9</span><br><span class="line">     filtered: 33.33</span><br><span class="line">        Extra: Using where</span><br><span class="line">1 row in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>因此，<strong>在线上在执行 update、delete、select … for update 等具有加锁性质的语句，一定要检查语句是否走了索引，如果是全表扫描的话，会对每一个索引加 next-key 锁，相当于把整个表锁住了</strong>，这是挺严重的问题。</p>
+<p>如果对 age 建立索引，事务 A 这条查询会加什么锁呢？</p>
+<p><strong>对 age 字段建立索引</strong>，然后再执行这条查询语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; CREATE INDEX stu_age ON iron_student (age);</span><br><span class="line">Query OK, 0 rows affected (0.04 sec)</span><br><span class="line">Records: 0  Duplicates: 0  Warnings: 0</span><br><span class="line"></span><br><span class="line">mysql&gt; begin;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; select * from iron_student where age &gt; 20 for update;</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">| id | name   | age  | score |</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">|  4 | name_4 |   22 |    40 |</span><br><span class="line">|  7 | name_7 |   23 |    60 |</span><br><span class="line">|  8 | name_8 |   31 |    80 |</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">3 rows in set (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>接下来，继续通过 <code>select * from performance_schema.data_locks\G;</code> 这条语句，查看事务执行 SQL 过程中加了什么锁。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; select * from performance_schema.data_locks\G;</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:1063:140036469222048</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: NULL</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469222048</span><br><span class="line">            LOCK_TYPE: TABLE  ### 同理，肯定会加上表级锁</span><br><span class="line">            LOCK_MODE: IX     ### 意向独占锁</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: NULL</span><br><span class="line">*************************** 2. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:5:1:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: stu_age</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: supremum pseudo-record</span><br><span class="line">*************************** 3. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:5:8:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: stu_age</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 22, 4  ### 这里并非22开始 而是 (20,22]</span><br><span class="line">*************************** 4. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:5:9:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: stu_age</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 23, 7</span><br><span class="line">*************************** 5. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:5:10:140036469219136</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: stu_age</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219136</span><br><span class="line">            LOCK_TYPE: RECORD   ## next-key lock</span><br><span class="line">            LOCK_MODE: X</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 31, 8</span><br><span class="line">*************************** 6. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:5:140036469219480</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219480</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X,REC_NOT_GAP</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 4</span><br><span class="line">*************************** 7. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:8:140036469219480</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219480</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X,REC_NOT_GAP  ## 行锁（记录锁）</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 7</span><br><span class="line">*************************** 8. row ***************************</span><br><span class="line">               ENGINE: INNODB</span><br><span class="line">       ENGINE_LOCK_ID: 140036574412800:2:4:9:140036469219480</span><br><span class="line">ENGINE_TRANSACTION_ID: 2881</span><br><span class="line">            THREAD_ID: 52</span><br><span class="line">             EVENT_ID: 58</span><br><span class="line">        OBJECT_SCHEMA: test</span><br><span class="line">          OBJECT_NAME: iron_student</span><br><span class="line">       PARTITION_NAME: NULL</span><br><span class="line">    SUBPARTITION_NAME: NULL</span><br><span class="line">           INDEX_NAME: PRIMARY</span><br><span class="line">OBJECT_INSTANCE_BEGIN: 140036469219480</span><br><span class="line">            LOCK_TYPE: RECORD</span><br><span class="line">            LOCK_MODE: X,REC_NOT_GAP  ### 行锁</span><br><span class="line">          LOCK_STATUS: GRANTED</span><br><span class="line">            LOCK_DATA: 8</span><br><span class="line">8 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>因为表中有两个索引，分别是主键索引和 age 索引，所以会分别对这两个索引加锁。</strong></p>
+<p>主键索引会加如下的锁：</p>
+<ul>
+<li>X 型的记录锁，锁住 id &#x3D; 4 的记录；</li>
+<li>X 型的记录锁，锁住 id &#x3D; 7 的记录；</li>
+<li>X 型的记录锁，锁住 id &#x3D; 8 的记录；</li>
+</ul>
+<p>分析 age 索引加锁的范围时，要先对 age 字段进行排序。 </p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; select * from iron_student order by age;</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">| id | name   | age  | score |</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">|  9 | name_9 |   12 |    90 |</span><br><span class="line">|  5 | name_5 |   16 |    50 |</span><br><span class="line">|  6 | name_6 |   16 |    60 |</span><br><span class="line">|  1 | name_1 |   18 |    10 |</span><br><span class="line">|  2 | name_2 |   19 |    20 |</span><br><span class="line">|  3 | name_3 |   20 |    30 | ### 这里刚好是开区间，没有被锁主 (20,22]</span><br><span class="line">|  4 | name_4 |   22 |    40 | ### 大于age 20 的被锁住, 然后对应的 id =4 也会被锁住</span><br><span class="line">|  7 | name_7 |   23 |    60 | ### 大于age 20 的被锁住, 然后对应的 id =7 也会被锁住</span><br><span class="line">|  8 | name_8 |   31 |    80 | ### 大于age 20 的被锁住, 然后对应的 id =8 也会被锁住，最后一个还有一个supernum的+无穷</span><br><span class="line">+----+--------+------+-------+</span><br><span class="line">9 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>age 索引加的锁：</p>
+<ul>
+<li>X 型的 next-key lock，锁住 age 范围 (20, 22] 的记录；</li>
+<li>X 型的 next-key lock，锁住 age 范围 (22, 23] 的记录；</li>
+<li>X 型的 next-key lock，锁住 age 范围 (23, 31] 的记录；</li>
+<li>X 型的 next-key lock，锁住 age 范围 (31, +∞] 的记录；</li>
+</ul>
+<p>化简一下，<strong>age 索引 next-key 锁的范围是 (20, +∞]。</strong></p>
+<p>可以看到，对 age 字段建立了索引后，查询语句是索引查询，并不会全表扫描，因此<strong>不会把整张表给锁住</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; explain select * from iron_student where age &gt; 20 for update\G;</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">           id: 1</span><br><span class="line">  select_type: SIMPLE</span><br><span class="line">        table: iron_student</span><br><span class="line">   partitions: NULL</span><br><span class="line">         type: range</span><br><span class="line">possible_keys: stu_age   </span><br><span class="line">          key: stu_age   ### 使用了 stu_age 索引</span><br><span class="line">      key_len: 5</span><br><span class="line">          ref: NULL</span><br><span class="line">         rows: 3</span><br><span class="line">     filtered: 100.00</span><br><span class="line">        Extra: Using index condition</span><br><span class="line">1 row in set, 1 warning (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; delete from iron_student where id = 4 limit 1; ## 因为id=4 主键已经加上了行锁——阻塞</span><br><span class="line">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction </span><br><span class="line">mysql&gt; update  iron_student set age = 1000 where id = 8 limit 1; ## </span><br><span class="line">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction</span><br><span class="line">mysql&gt; insert into iron_student (name,age,score) values (&#x27;donscoco&#x27;,2,2); ## 不阻塞。</span><br><span class="line">mysql&gt; insert into iron_student (name,age,score) values (&#x27;donscoco&#x27;,24,90); ## age 24 在(20,supernum]之间，阻塞</span><br><span class="line">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction</span><br><span class="line">mysql&gt; delete from iron_student where score=80; ## score 的那条记录的age在锁范围内，阻塞</span><br><span class="line">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>总结一下，在对 age 字段建立索引后，事务 A 在执行下面这条查询语句后，主键索引和 age 索引会加如下的锁。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">age索引中 加上 (20,supernum]</span><br><span class="line">聚簇索引中 加上 4,7,8</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="MySQL-死锁了，怎么办？"><a href="#MySQL-死锁了，怎么办？" class="headerlink" title="MySQL 死锁了，怎么办？"></a>MySQL 死锁了，怎么办？</h2><hr>
+<h3 id="死锁例子"><a href="#死锁例子" class="headerlink" title="死锁例子"></a>死锁例子</h3><p>现在有这样一个表，order_no是唯一索引。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; select * from t_order;</span><br><span class="line">+----+----------+-------------+</span><br><span class="line">| id | order_no | create_date |</span><br><span class="line">+----+----------+-------------+</span><br><span class="line">|  1 |     1001 | NULL        |</span><br><span class="line">|  2 |     1002 | NULL        |</span><br><span class="line">|  3 |     1003 | NULL        |</span><br><span class="line">|  4 |     1004 | NULL        |</span><br><span class="line">|  5 |     1005 | NULL        |</span><br><span class="line">+----+----------+-------------+</span><br><span class="line">5 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>事务A和事务B先后启动事务后，在各自的事务里面检查是否有 order_no&#x3D;1007 ，发现没有都准备插入。</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C0-1.png" class="">
+
+<p>之后事务A开始插入，发现被事务B的间隙锁阻塞</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C0-2.png" class="">
+
+<p>之后事务B开始插入，发现被事务A的间隙锁阻塞。（因为这里开启的死锁检测，所以事务B被强制退出了）</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C0-3.png" class="">
+
+<p>事务A和事务B之间死锁。（因为间隙锁不冲突，相互持有间隙锁，相互等待对方的间隙锁释放）</p>
+<h3 id="Insert-语句是怎么加行级锁的？"><a href="#Insert-语句是怎么加行级锁的？" class="headerlink" title="Insert 语句是怎么加行级锁的？"></a>Insert 语句是怎么加行级锁的？</h3><ul>
+<li>隐式锁</li>
+</ul>
+<p>Insert 语句在正常执行时是不会生成锁结构的，它是靠聚簇索引记录自带的 trx_id 隐藏列来作为<strong>隐式锁</strong>来保护记录的。</p>
+<p>什么是隐式锁？</p>
+<p>当事务需要加锁的时，如果这个锁不可能发生冲突，InnoDB会跳过加锁环节，这种机制称为隐式锁。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">说白了就是不加锁。但是后续的处理根据是否冲突可能会升级为一个锁</span><br><span class="line">1.间隙锁冲突——隐式锁升级为一个独占、插入意向锁（X,INSERT_INTENTION）<span class="comment">## 目的是为了阻塞其他事务的独占锁并让自己有优先权，</span></span><br><span class="line">2.唯一二级索引列冲突——<span class="string">&#x27;隐式锁升级为共享锁（S）&#x27;</span>。<span class="comment">## 目的是为了阻塞其他事务之后的申请独占锁</span></span><br><span class="line">3.相同sql语句冲突——隐式锁升级为 独占锁（X,REC_NOT_GAP）, 后面的insert的<span class="string">&#x27;隐式锁升级为 共享锁（S）&#x27;</span>。 <span class="comment">## 目的是为了阻塞其他事务之后的申请独占锁</span></span><br></pre></td></tr></table></figure>
+
+<p>为什么说 隐式锁是 用 trx_id 隐藏列 来实现的？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">因为trx_id 是一定递增的。不会出现相同的trx_id。隐式锁不是一个实体，而是一个处理逻辑，根据后续不同的情况进行判断去进行一个加锁或者不加锁的操作。</span><br></pre></td></tr></table></figure>
+
+
+
+<p>间隙锁与间隙锁之间是兼容的:</p>
+<p><strong>间隙锁的意义只在于阻止区间被插入</strong>，因此是可以共存的。<strong>一个事务获取的间隙锁不会阻止另一个事务获取同一个间隙范围的间隙锁</strong>，共享和排他的间隙锁是没有区别的，他们相互不冲突，且功能相同，即两个事务可以同时持有包含共同间隙的间隙锁。这里的共同间隙包括两种场景：</p>
+<ul>
+<li>其一是两个间隙锁的间隙区间完全一样；</li>
+<li>其二是一个间隙锁包含的间隙区间是另一个间隙锁包含间隙区间的子集。</li>
+</ul>
+<hr>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">mysql&gt; select * from t_order;</span><br><span class="line">+----+----------+-------------+</span><br><span class="line">| id | order_no | create_date |</span><br><span class="line">+----+----------+-------------+</span><br><span class="line">|  1 |     1001 | NULL        |</span><br><span class="line">|  2 |     1002 | NULL        |</span><br><span class="line">|  3 |     1003 | NULL        |</span><br><span class="line">|  4 |     1004 | NULL        |</span><br><span class="line">|  5 |     1005 | NULL        |</span><br><span class="line">+----+----------+-------------+</span><br><span class="line">5 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>现在，事务 A 执行了下面这条语句。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 事务 A</span></span><br><span class="line">mysql&gt; begin;</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; select * from t_order <span class="built_in">where</span> order_no = 1006 <span class="keyword">for</span> update;</span><br><span class="line">Empty <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<p>接着，我们执行 <code>select * from performance_schema.data_locks\G;</code> 语句 ，确定事务 A 加了什么类型的锁，这里只关注在记录上加锁的类型。</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C1.png" class="">
+
+<p>本次的例子加的是 next-key 锁（记录锁+间隙锁），锁范围是<code>（1005, +∞]</code>。</p>
+<p>然后，有个事务 B 在这个间隙锁中，插入了一个记录，那么此时该事务 B 就会被阻塞：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 事务 B 插入一条记录</span></span><br><span class="line">mysql&gt; begin;</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; insert into t_order(order_no, create_date) values(1010,now());</span><br><span class="line"><span class="comment">### 阻塞状态。。。。</span></span><br></pre></td></tr></table></figure>
+
+<p>接着，我们执行 <code>select * from performance_schema.data_locks\G;</code> 语句 ，确定事务 B 加了什么类型的锁，这里只关注在记录上加锁的类型。</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C2.png" class="">
+
+<p>可以看到，事务 B 的状态为等待状态（LOCK_STATUS: WAITING），因为向事务 A 生成的 next-key 锁（记录锁+间隙锁）范围<code>（1005, +∞]</code> 中插入了一条记录，所以事务 B 的插入操作生成了一个插入意向锁（<code>LOCK_MODE: X,INSERT_INTENTION</code>），锁的状态是等待状态，意味着事务 B 并没有成功获取到插入意向锁，因此事务 B 发生阻塞。</p>
+<hr>
+<h4 id="记录之间加有间隙锁"><a href="#记录之间加有间隙锁" class="headerlink" title="记录之间加有间隙锁"></a>记录之间加有间隙锁</h4><p>每插入一条新记录，都需要看一下待插入记录的下一条记录上是否已经被加了间隙锁，如果已加间隙锁，此时会生成一个插入意向锁，然后锁的状态设置为等待状态（<em>PS：MySQL 加锁时，是先生成锁结构，然后设置锁的状态，如果锁状态是等待状态，并不是意味着事务成功获取到了锁，只有当锁状态为正常状态时，才代表事务成功获取到了锁</em>），现象就是 Insert 语句会被阻塞。</p>
+<p>举个例子，现在 t_order 表中，只有这些数据，<strong>order_no 是二级索引</strong>。</p>
+<h4 id="遇到唯一键冲突"><a href="#遇到唯一键冲突" class="headerlink" title="遇到唯一键冲突"></a>遇到唯一键冲突</h4><p>如果在插入新记录时，插入了一个与「已有的记录的主键或者唯一二级索引列值相同」的记录」（不过可以有多条记录的唯一二级索引列的值同时为NULL，这里不考虑这种情况），此时插入就会失败，然后对于这条记录加上了 <strong>S 型的锁</strong>。</p>
+<p><strong>唯一二级索引冲突</strong></p>
+<p>下面举个「唯一二级索引冲突」的例子，MySQL 8.0 版本，事务隔离级别为可重复读（默认隔离级别）。</p>
+<p>t_order 表中的 order_no 字段为唯一二级索引，并且已经存在 order_no 值为 1001 的记录，此时事务 A，插入了 order_no 为 1001 的记录，就出现了报错。</p>
+<p>但是除了报错之外，还做一个很重要的事情，就是对 order_no 值为 1001 这条记录加上了 <strong>S 型的 next-key 锁</strong>。</p>
+<p>我们可以执行 <code>select * from performance_schema.data_locks\G;</code> 语句 ，确定事务加了什么类型的锁，这里只关注在记录上加锁的类型。</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C3.png" class="">
+
+<p>可以看到，index_order 二级索引中的 1001（LOCK_DATA） 记录的锁类型为 S 型的 next-key 锁。注意，这里 LOCK_TYPE 中的 RECORD 表示行级锁，而不是记录锁的意思。如果是记录锁的话，LOCK_MODE 会显示 <code>S, REC_NOT_GAP</code>。</p>
+<p>此时，事务 B 执行了 select * from t_order where order_no &#x3D; 1001 for update; 就会阻塞，因为这条语句想加 X 型的锁，是与 S 型的锁是冲突的，所以就会被阻塞。</p>
+<p>我们也可以从 performance_schema.data_locks 这个表中看到，事务 B 的状态（LOCK_STATUS）是等待状态，加锁的类型 X 型的记录锁（LOCK_MODE: X,REC_NOT_GAP ）。</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C4.png" class="">
+
+<p>上面的案例是针对唯一二级索引重复而插入失败的场景。</p>
+<p><strong>相同的 insert 语句的场景</strong></p>
+<p>接下来，分析两个事务执行过程中，执行了相同的 insert 语句的场景。</p>
+<p>现在 t_order 表中，只有这些数据，<strong>order_no 为唯一二级索引</strong>。</p>
+<p>在隔离级别可重复读的情况下，开启两个事务，前后执行相同的 Insert 语句，此时<strong>事务 B 的 Insert 语句会发生阻塞</strong>。</p>
+<p>两个事务的加锁过程：</p>
+<ul>
+<li>事务 A 先插入 order_no 为 1007 的记录，可以插入成功，此时对应的唯一二级索引记录被「隐式锁」保护，此时还没有实际的锁结构（执行完这里的时候，你可以看查 performance_schema.data_locks 信息，可以看到这条记录是没有加任何锁的）；</li>
+<li>接着，事务 B 也插入 order_no 为 1007 的记录，由于事务 A 已经插入 order_no 值为 1007 的记录，所以事务 B 在插入二级索引记录时会遇到重复的唯一二级索引列值，此时事务 B 想获取一个 S 型 next-key 锁，但是事务 A 并未提交，<strong>事务 A 插入的 order_no 值为 1007 的记录上的「隐式锁」会变「显示锁」且锁类型为 X 型的记录锁，所以事务 B 向获取 S 型 next-key 锁时会遇到锁冲突，事务 B 进入阻塞状态</strong>。</li>
+</ul>
+<p>我们可以执行 <code>select * from performance_schema.data_locks\G;</code> 语句 ，确定事务加了什么类型的锁，这里只关注在记录上加锁的类型。</p>
+<p>先看事务 A 对 order_no 为 1007 的记录加了什么锁？</p>
+<p>从下图可以看到，<strong>事务 A 对 order_no 为 1007 记录加上了类型为 X 型的记录锁</strong>（<em>注意，这个是在执行事务 B 之后才产生的锁，没执行事务 B 之前，该记录还是隐式锁</em>）。</p>
+<p>然后看事务 B 想对 order_no 为 1007 的记录加什么锁？</p>
+<p>从下图可以看到，<strong>事务 B 想对 order_no 为 1007 的记录加 S 型的 next-key 锁，但是由于事务 A 在该记录上持有了 X 型的记录锁，这两个锁是冲突的，所以导致事务 B 处于等待状态</strong>。</p>
+<img src="/2020/03/11/mysql/%E6%AD%BB%E9%94%81%E5%AE%9E%E9%AA%8C5.png" class="">
+
+<p>从这个实验可以得知，并发多个事务的时候，第一个事务插入的记录，并不会加锁，而是会用隐式锁保护唯一二级索引的记录。</p>
+<p>但是当第一个事务还未提交的时候，有其他事务插入了与第一个事务相同的记录，第二个事务就会<strong>被阻塞</strong>，<strong>因为此时第一事务插入的记录中的隐式锁会变为显示锁且类型是 X 型的记录锁，而第二个事务是想对该记录加上 S 型的 next-key 锁，X 型与 S 型的锁是冲突的</strong>，所以导致第二个事务会等待，直到第一个事务提交后，释放了锁。</p>
+<p>如果 order_no 不是唯一二级索引，那么两个事务，前后执行相同的 Insert 语句，是不会发生阻塞的，就如前面的这个例子。</p>
+<hr>
+<h3 id="加锁分析"><a href="#加锁分析" class="headerlink" title="加锁分析 *"></a>加锁分析 *</h3><p><a href="https://xiaolincoding.com/mysql/lock/show_lock.html#time-2-%E9%98%B6%E6%AE%B5%E5%8A%A0%E9%94%81%E5%88%86%E6%9E%90">https://xiaolincoding.com/mysql/lock/show_lock.html#time-2-%E9%98%B6%E6%AE%B5%E5%8A%A0%E9%94%81%E5%88%86%E6%9E%90</a></p>
+<h1 id="内存"><a href="#内存" class="headerlink" title="内存"></a>内存</h1><h2 id="Buffer-Pool"><a href="#Buffer-Pool" class="headerlink" title="Buffer Pool"></a>Buffer Pool</h2><p>MySQL 的数据都是存在磁盘中的，那么我们要更新一条记录的时候，得先要从磁盘读取该记录，然后在内存中修改这条记录。那修改完这条记录是选择直接写回到磁盘，还是选择缓存起来呢？</p>
+<p>当然是缓存起来好，这样下次有查询语句命中了这条记录，直接读取缓存中的记录，就不需要从磁盘获取数据了。</p>
+<p>为此，Innodb 存储引擎设计了一个<strong>缓冲池（Buffer Pool）</strong>，来提高数据库的读写性能。</p>
+<img src="/2020/03/11/mysql/mysql-buffer-pool.drawio.png" class="">
+
+<p>有了 Buffer Poo 后：</p>
+<ul>
+<li>当读取数据时，如果数据存在于 Buffer Pool 中，客户端就会直接读取 Buffer Pool 中的数据，否则再去磁盘中读取。</li>
+<li>当修改数据时，如果数据存在于 Buffer Pool 中，那直接修改 Buffer Pool 中数据所在的页，然后将其页设置为脏页（该页的内存数据和磁盘上的数据已经不一致），为了减少磁盘I&#x2F;O，不会立即将脏页写入磁盘，后续由后台线程选择一个合适的时机将脏页写入到磁盘。(看情况，如果设置参数时”双一”，那每次提交事务都会fsync到磁盘)</li>
+</ul>
+<p>Buffer Pool缓存了什么？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">InnoDB 会把存储的数据划分为若干个「页」，以页作为磁盘和内存交互的基本单位，一个页的默认大小为 16KB。因此，Buffer Pool 同样需要按「页」来划分。</span><br><span class="line">在 MySQL 启动的时候，InnoDB 会为 Buffer Pool 申请一片连续的内存空间，然后按照默认的16KB的大小划分出一个个的页， Buffer Pool 中的页就叫做缓存页。此时这些缓存页都是空闲的，之后随着程序的运行，才会有磁盘上的页被缓存到 Buffer Pool 中。</span><br><span class="line">所以，MySQL 刚启动的时候，你会观察到使用的虚拟内存空间很大，而使用到的物理内存空间却很小，这是因为只有这些虚拟内存被访问后，操作系统才会触发缺页中断，申请物理内存，接着将虚拟地址和物理地址建立映射关系。</span><br></pre></td></tr></table></figure>
+
+<p>Buffer Pool 除了缓存「索引页」和「数据页」，还包括了 Undo 页，插入缓存、自适应哈希索引、锁信息等等。</p>
+<h2 id="Buffer-Pool-管理"><a href="#Buffer-Pool-管理" class="headerlink" title="Buffer Pool 管理"></a>Buffer Pool 管理</h2><h3 id="管理空闲页"><a href="#管理空闲页" class="headerlink" title="管理空闲页"></a>管理空闲页</h3><p>Buffer Pool 是一片连续的内存空间，当 MySQL 运行一段时间后，这片连续的内存空间中的缓存页既有空闲的，也有被使用的。</p>
+<p>为了能够快速找到空闲的缓存页，可以使用链表结构，将空闲缓存页的「控制块」作为链表的节点，这个链表称为 <strong>Free 链表</strong>（空闲链表）。</p>
+<img src="/2020/03/11/mysql/mysql-%E7%BC%93%E5%AD%98%E9%A1%B5%E7%A9%BA%E9%97%B2%E9%93%BE%E8%A1%A8.drawio.png" class="">
+
+<p>Free 链表上除了有控制块，还有一个头节点，该头节点包含链表的头节点地址，尾节点地址，以及当前链表中节点的数量等信息。</p>
+<p>Free 链表节点是一个一个的控制块，而每个控制块包含着对应缓存页的地址，所以相当于 Free 链表节点都对应一个空闲的缓存页。</p>
+<p>有了 Free 链表后，每当需要从磁盘中加载一个页到 Buffer Pool 中时，就从 Free链表中取一个空闲的缓存页，并且把该缓存页对应的控制块的信息填上，然后把该缓存页对应的控制块从 Free 链表中移除。</p>
+<h3 id="管理脏页"><a href="#管理脏页" class="headerlink" title="管理脏页"></a>管理脏页</h3><p>设计 Buffer Pool 除了能提高读性能，还能提高写性能，也就是更新数据的时候，不需要每次都要写入磁盘，而是将 Buffer Pool 对应的缓存页标记为<strong>脏页</strong>，然后再由后台线程将脏页写入到磁盘。</p>
+<p>那为了能快速知道哪些缓存页是脏的，于是就设计出 <strong>Flush 链表</strong>，它跟 Free 链表类似的，链表的节点也是控制块，区别在于 Flush 链表的元素都是脏页。</p>
+<img src="/2020/03/11/mysql/mysql-%E7%BC%93%E5%AD%98%E9%A1%B5%E8%84%8F%E9%A1%B5%E9%93%BE%E8%A1%A8.drawio.png" class="">
+
+<p>有了 Flush 链表后，后台线程就可以遍历 Flush 链表，将脏页写入到磁盘。</p>
+<h3 id="提高缓存命中率"><a href="#提高缓存命中率" class="headerlink" title="提高缓存命中率"></a>提高缓存命中率</h3><p>LRU 策略</p>
+<p>Buffer Pool 的三个链表</p>
+<ul>
+<li>Free Page（空闲页），表示此页未被使用，位于 Free 链表；</li>
+<li>Clean Page（干净页），表示此页已被使用，但是页面未发生修改，位于LRU 链表。</li>
+<li>Dirty Page（脏页），表示此页「已被使用」且「已经被修改」，其数据和磁盘上的数据已经不一致。当脏页上的数据写入磁盘后，内存数据和磁盘数据一致，那么该页就变成了干净页。脏页同时存在于 LRU 链表和 Flush 链表。</li>
+</ul>
+<hr>
+<p>什么是预读失效？</p>
+<p>先来说说 MySQL 的预读机制。程序是有空间局部性的，靠近当前被访问数据的数据，在未来很大概率会被访问到。</p>
+<p>所以，MySQL 在加载数据页时，会提前把它相邻的数据页一并加载进来，目的是为了减少磁盘 IO。</p>
+<p>但是可能这些<strong>被提前加载进来的数据页，并没有被访问</strong>，相当于这个预读是白做了，这个就是<strong>预读失效</strong>。</p>
+<p>如果使用简单的 LRU 算法，就会把预读页放到 LRU 链表头部，而当 Buffer Pool空间不够的时候，还需要把末尾的页淘汰掉。</p>
+<p>如果这些预读页如果一直不会被访问到，就会出现一个很奇怪的问题，不会被访问的预读页却占用了 LRU 链表前排的位置，而末尾淘汰的页，可能是频繁访问的页，这样就大大降低了缓存命中率。</p>
+<hr>
+<p>怎么解决预读失效而导致缓存命中率降低的问题？</p>
+<p>我们不能因为害怕预读失效，而将预读机制去掉，大部分情况下，局部性原理还是成立的。</p>
+<p>要避免预读失效带来影响，最好就是<strong>让预读的页停留在 Buffer Pool 里的时间要尽可能的短，让真正被访问的页才移动到 LRU 链表的头部，从而保证真正被读取的热数据留在 Buffer Pool 里的时间尽可能长</strong>。</p>
+<p>那到底怎么才能避免呢？</p>
+<p>MySQL 是这样做的，它改进了 LRU 算法，将 LRU 划分了 2 个区域：<strong>old 区域 和 young 区域</strong>。</p>
+<p>young 区域在 LRU 链表的前半部分，old 区域则是在后半部分，如下图：</p>
+<img src="/2020/03/11/mysql/mysql-%E7%BC%93%E5%86%B2%E9%A1%B5LRU%E9%93%BE%E8%A1%A8.drawio.png" class="">
+
+<p><strong>划分这两个区域后，预读的页就只需要加入到 old 区域的头部，当页被真正访问的时候，才将页插入 young 区域的头部</strong>。如果预读的页一直没有被访问，就会从 old 区域移除，这样就不会影响 young 区域中的热点数据。</p>
+<p>old区域没有占用到 young 区域的位置，而且还会比 young 区域的数据更早被淘汰出去。</p>
+<p>例如，预读20，然后访问20.预读20进来，同时挤出去（淘汰）10.局部性原理，不久后访问20了。把20放前面。</p>
+<img src="/2020/03/11/mysql/mysql-%E7%BC%93%E5%86%B2%E9%A1%B5LRU%E9%93%BE%E8%A1%A8a.drawio.png" class="">
+
+
+
+<hr>
+<p>什么是 Buffer Pool 污染？</p>
+<p>当某一个 SQL 语句<strong>扫描了大量的数据</strong>时，在 Buffer Pool 空间比较有限的情况下，可能会将 <strong>Buffer Pool 里的所有页都替换出去，导致大量热数据被淘汰了</strong>，等这些热数据又被再次访问的时候，由于缓存未命中，就会产生大量的磁盘 IO，MySQL 性能就会急剧下降，这个过程被称为 <strong>Buffer Pool 污染</strong>。</p>
+<p>注意， Buffer Pool 污染并不只是查询语句查询出了大量的数据才出现的问题，即使查询出来的结果集很小，也会造成 Buffer Pool 污染。</p>
+<p>比如，在一个数据量非常大的表，执行了这条语句：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">select * from test_user <span class="built_in">where</span> name like <span class="string">&quot;%zhangsan%&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>可能这个查询出来的结果就几条记录，但是由于这条语句会发生索引失效，所以这个查询过程是全表扫描的，接着会发生如下的过程：</p>
+<ul>
+<li>从磁盘读到的页加入到 LRU 链表的 old 区域头部；</li>
+<li>当从页里读取行记录时，也就是页被访问的时候，就要将该页放到 young 区域头部；</li>
+<li>接下来拿行记录的 name 字段和字符串 xiaolin 进行模糊匹配，如果符合条件，就加入到结果集里；</li>
+<li>如此往复，直到扫描完表中的所有记录。</li>
+</ul>
+<p>经过这一番折腾，原本 young 区域的热点数据都会被替换掉。</p>
+<hr>
+<p>怎么解决出现 Buffer Pool 污染而导致缓存命中率下降的问题？</p>
+<p>像前面这种全表扫描的查询，很多缓冲页其实只会被访问一次，但是它却只因为被访问了一次而进入到 young 区域，从而导致热点数据被替换了。</p>
+<p>LRU 链表中 young 区域就是热点数据，只要我们提高进入到 young 区域的门槛，就能有效地保证 young 区域里的热点数据不会被替换掉。</p>
+<p>MySQL 是这样做的，进入到 young 区域条件增加了一个<strong>停留在 old 区域的时间判断</strong>。</p>
+<p>具体是这样做的，在对某个处在 old 区域的缓存页进行第一次访问时，就在它对应的控制块中记录下来这个访问时间：</p>
+<ul>
+<li>如果后续的访问时间与第一次访问的时间<strong>在某个时间间隔内</strong>，那么<strong>该缓存页就不会被从 old 区域移动到 young 区域的头部</strong>；</li>
+<li>如果后续的访问时间与第一次访问的时间<strong>不在某个时间间隔内</strong>，那么<strong>该缓存页移动到 young 区域的头部</strong>；</li>
+</ul>
+<p>这个间隔时间是由 <code>innodb_old_blocks_time</code> 控制的，默认是 1000 ms。</p>
+<p>也就说，<strong>只有同时满足「被访问」与「在 old 区域停留时间超过 1 秒」两个条件，才会被插入到 young 区域头部</strong>，这样就解决了 Buffer Pool 污染的问题 。</p>
+<p>另外，MySQL 针对 young 区域其实做了一个优化，为了防止 young 区域节点频繁移动到头部。young 区域前面 1&#x2F;4 被访问不会移动到链表头部，只有后面的 3&#x2F;4被访问了才会。</p>
+<h1 id="持久化"><a href="#持久化" class="headerlink" title="持久化"></a>持久化</h1><p>基础概念</p>
+<ul>
+<li><strong>undo log（回滚日志）</strong>：是 Innodb 存储引擎层生成的日志，实现了事务中的<strong>原子性</strong>，主要<strong>用于事务回滚和 MVCC</strong>。</li>
+<li><strong>redo log（重做日志）</strong>：是 Innodb 存储引擎层生成的日志，实现了事务中的<strong>持久性</strong>，主要<strong>用于掉电等故障恢复</strong>；</li>
+<li><strong>binlog （归档日志）</strong>：是 Server 层生成的日志，主要<strong>用于数据备份和主从复制</strong>；</li>
+</ul>
+<p>我们在执行执行一条“增删改”语句的时候，虽然没有输入 begin 开启事务和 commit 提交事务，但是 MySQL 会<strong>隐式开启事务</strong>来执行“增删改”语句的，执行完就自动提交事务的，这样就保证了执行完“增删改”语句后，我们可以及时在数据库表看到“增删改”的结果了。</p>
+<p>执行一条语句是否自动提交事务，是由 <code>autocommit</code> 参数决定的，默认是开启。所以，执行一条 update 语句也是会使用事务的。</p>
+<p>一个事务在执行过程中，在还没有提交事务之前，如果MySQL 发生了崩溃，要怎么回滚到事务之前的数据呢？</p>
+<h2 id="undo-log"><a href="#undo-log" class="headerlink" title="undo log"></a>undo log</h2><p>undo log 是一种用于撤销回退的日志。在事务没提交之前，MySQL 会先记录更新前的数据到 undo log 日志文件里面，当事务回滚时，可以利用 undo log 来进行回滚。</p>
+<p>每当 InnoDB 引擎对一条记录进行操作（修改、删除、新增）时，要把回滚时需要的信息都记录到 undo log 里，比如：</p>
+<ul>
+<li>在<strong>插入</strong>一条记录时，要把这条记录的主键值记下来，这样之后回滚时只需要把这个主键值对应的记录<strong>删掉</strong>就好了；</li>
+<li>在<strong>删除</strong>一条记录时，要把这条记录中的内容都记下来，这样之后回滚时再把由这些内容组成的记录<strong>插入</strong>到表中就好了；</li>
+<li>在<strong>更新</strong>一条记录时，要把被更新的列的旧值记下来，这样之后回滚时再把这些列<strong>更新为旧值</strong>就好了。</li>
+</ul>
+<p>在发生回滚时，就读取 undo log 里的数据，然后做原先相反操作。比如当 delete 一条记录时，undo log 中会把记录中的内容都记下来，然后执行回滚操作的时候，就读取 undo log 里的数据，然后进行 insert 操作。</p>
+<p>不同的操作，需要记录的内容也是不同的，所以不同类型的操作（修改、删除、新增）产生的 undo log 的格式也是不同的。</p>
+<p>一条记录的每一次更新操作产生的 undo log 格式都有一个 roll_pointer 指针和一个 trx_id 事务id：</p>
+<ul>
+<li>通过 trx_id 可以知道该记录是被哪个事务修改的；</li>
+<li>通过 roll_pointer 指针可以将这些 undo log 串成一个链表，这个链表就被称为版本链；</li>
+</ul>
+<p>undo log 是如何刷盘（持久化到磁盘）的？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">undo <span class="built_in">log</span> 和数据页的刷盘策略是一样的，都需要通过 redo <span class="built_in">log</span> 保证持久化。</span><br><span class="line">buffer pool 中有 undo 页，对 undo 页的修改也都会记录到 redo <span class="built_in">log</span>。redo <span class="built_in">log</span> 会每秒刷盘，提交事务时也会刷盘，数据页和 undo 页都是靠这个机制保证持久化的。</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="redo-log"><a href="#redo-log" class="headerlink" title="redo log"></a>redo log</h2><p>Buffer Pool 是提高了读写效率没错，但是问题来了，Buffer Pool 是基于内存的，而内存总是不可靠，万一断电重启，还没来得及落盘的脏页数据就会丢失。</p>
+<p>为了防止断电导致数据丢失的问题，当有一条记录需要更新的时候，InnoDB 引擎就会先更新内存（同时标记为脏页），然后将本次对这个页的修改以 redo log 的形式记录下来，<strong>这个时候更新就算完成了</strong>。</p>
+<p>后续，InnoDB 引擎会在适当的时候，由后台线程将缓存在 Buffer Pool 的脏页刷新到磁盘里，这就是 <strong>WAL （Write-Ahead Logging）技术</strong>。</p>
+<p><strong>WAL 技术指的是， MySQL 的写操作并不是立刻写到磁盘上，而是先写日志，然后在合适的时间再写到磁盘上</strong>。</p>
+<img src="/2020/03/11/mysql/mysql-wal.drawio.png" class="">
+
+<p>什么是redo log </p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">redo <span class="built_in">log</span> 是物理日志，</span><br><span class="line">记录了某个数据页做了什么修改，比如**对 XXX 表空间中的 YYY 数据页 ZZZ 偏移量的地方做了AAA 更新**，每当执行一个事务就会产生这样的一条或者多条物理日志。</span><br><span class="line">在事务提交时，只要先将 redo <span class="built_in">log</span> 持久化到磁盘即可，可以不需要等到将缓存在 Buffer Pool 里的脏页数据持久化到磁盘。</span><br><span class="line">当系统崩溃时，虽然脏页数据没有持久化，但是 redo <span class="built_in">log</span> 已经持久化，接着 MySQL 重启后，可以根据 redo <span class="built_in">log</span> 的内容，将所有数据恢复到最新的状态。</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>redo log的作用</p>
+<ul>
+<li><strong>实现事务的持久性，让 MySQL 有 crash-safe 的能力</strong>，能够保证 MySQL 在任何时间段突然崩溃，重启后之前已提交的记录都不会丢失；</li>
+<li><strong>将写操作从「随机写」变成了「顺序写」</strong>，提升 MySQL 写入磁盘的性能。</li>
+</ul>
+<hr>
+<p>被修改 Undo 页面，需要记录对应 redo log 吗？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">需要的。</span><br><span class="line"></span><br><span class="line">开启事务后，InnoDB 层更新记录前，首先要记录相应的 undo <span class="built_in">log</span>，如果是更新操作，需要把被更新的列的旧值记下来，也就是要生成一条 undo <span class="built_in">log</span>，undo <span class="built_in">log</span> 会写入 Buffer Pool 中的 Undo 页面。</span><br><span class="line"></span><br><span class="line">不过，在内存修改该 Undo 页面后，需要记录对应的 redo <span class="built_in">log</span>。</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>redo log 和 undo log 区别在哪？这两种日志是属于 InnoDB 存储引擎的日志，它们的区别在于：</p>
+<ul>
+<li>redo log 记录了此次事务「<strong>完成后</strong>」的数据状态，记录的是更新<strong>之后</strong>的值；</li>
+<li>undo log 记录了此次事务「<strong>开始前</strong>」的数据状态，记录的是更新<strong>之前</strong>的值；</li>
+</ul>
+<p>事务提交之前发生了崩溃，重启后会通过 undo log 回滚事务，事务提交之后发生了崩溃，重启后会通过 redo log 恢复事务。</p>
+<p>所以有了 redo log，再通过 WAL 技术，InnoDB 就可以保证即使数据库发生异常重启，之前已提交的记录都不会丢失，这个能力称为 <strong>crash-safe</strong>（崩溃恢复）。可以看出来， <strong>redo log 保证了事务四大特性中的持久性</strong>。</p>
+<hr>
+<p>redo log 要写到磁盘，数据也要写磁盘，为什么要多此一举？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">写入 redo <span class="built_in">log</span> 的方式使用了追加操作， 所以磁盘操作是顺序写，而写入数据需要先找到写入位置，然后才写到磁盘，所以磁盘操作是随机写。</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>产生的 redo log 是直接写入磁盘的吗？</p>
+<p>不是的。</p>
+<p>实际上， 执行一个事务的过程中，产生的 redo log 也不是直接写入磁盘的，因为这样会产生大量的 I&#x2F;O 操作，而且磁盘的运行速度远慢于内存。</p>
+<p>所以，redo log 也有自己的缓存—— <strong>redo log buffer</strong>，每当产生一条 redo log 时，会先写入到 redo log buffer，后续在持久化到磁盘如下图：</p>
+<img src="/2020/03/11/mysql/mysql-redolog-buf.png" class="">
+
+<p>redo log buffer 默认大小 16 MB，可以通过 <code>innodb_log_Buffer_size</code> 参数动态的调整大小，增大它的大小可以让 MySQL 处理「大事务」是不必写入磁盘，进而提升写 IO 性能。</p>
+<hr>
+<p>redolog 什么时候刷盘？</p>
+<p>缓存在 redo log buffer 里的 redo log 还是在内存中，它什么时候刷新到磁盘？</p>
+<p>主要有下面几个时机：</p>
+<ul>
+<li>MySQL 正常关闭时；</li>
+<li>当 redo log buffer 中记录的写入量大于 redo log buffer 内存空间的一半时，会触发落盘；</li>
+<li>InnoDB 的后台线程每隔 1 秒，将 redo log buffer 持久化到磁盘。</li>
+<li>每次事务提交时都将缓存在 redo log buffer 里的 redo log 直接持久化到磁盘（这个策略可由 innodb_flush_log_at_trx_commit 参数控制，“双一”中的一个一）。</li>
+</ul>
+<hr>
+<p><code>innodb_flush_log_at_trx_commit</code> 参数控制，可取的值有：0、1、2，默认值为 1，这三个值分别代表的策略如下：</p>
+<ul>
+<li>当设置该<strong>参数为 0 时</strong>，表示每次事务提交时 ，还是<strong>将 redo log 留在 redo log buffer 中</strong> ，该模式下在事务提交时不会主动触发写入磁盘的操作。</li>
+<li>当设置该<strong>参数为 1 时</strong>，表示每次事务提交时，都<strong>将缓存在 redo log buffer 里的 redo log 直接持久化到磁盘</strong>，这样可以保证 MySQL 异常重启之后数据不会丢失。</li>
+<li>当设置该<strong>参数为 2 时</strong>，表示每次事务提交时，都只是缓存在 redo log buffer 里的 redo log <strong>写到 redo log 文件，注意写入到「 redo log 文件」并不意味着写入到了磁盘</strong>，因为操作系统的文件系统中有个 Page Cache（如果你想了解 Page Cache，可以看<a href="https://xiaolincoding.com/os/6_file_system/pagecache.html">这篇 (opens new window)</a>），Page Cache 是专门用来缓存文件数据的，所以写入「 redo log文件」意味着写入到了操作系统的文件缓存。</li>
+</ul>
+<p>如图：</p>
+<img src="/2020/03/11/mysql/mysql-flush-log.drawio.png" class="">
+
+<p>InnoDB 的后台线程每隔 1 秒：</p>
+<ul>
+<li>针对参数 0 ：会把缓存在 redo log buffer 中的 redo log ，通过调用 <code>write()</code> 写到操作系统的 Page Cache，然后调用 <code>fsync()</code> 持久化到磁盘。<strong>所以参数为 0 的策略，MySQL 进程的崩溃会导致上一秒钟所有事务数据的丢失</strong>;</li>
+<li>针对参数 2 ：调用 fsync，将缓存在操作系统中 Page Cache 里的 redo log 持久化到磁盘。<strong>所以参数为 2 的策略，较取值为 0 情况下更安全，因为 MySQL 进程的崩溃并不会丢失数据，只有在操作系统崩溃或者系统断电的情况下，上一秒钟所有事务数据才可能丢失</strong>。</li>
+</ul>
+<hr>
+<p>这三个参数的应用场景是什么？</p>
+<hr>
+<p>redo log 文件写满了怎么办？</p>
+<p>默认情况下， InnoDB 存储引擎有 1 个重做日志文件组( redo log Group），「重做日志文件组」由有 2 个 redo log 文件组成，这两个 redo 日志的文件名叫 ：<code>ib_logfile0</code> 和 <code>ib_logfile1</code> 。</p>
+<p>在重做日志组中，每个 redo log File 的大小是固定且一致的，假设每个 redo log File 设置的上限是 1 GB，那么总共就可以记录 2GB 的操作。</p>
+<p>重做日志文件组是以<strong>循环写</strong>的方式工作的，从头开始写，写到末尾就又回到开头，相当于一个环形。</p>
+<img src="/2020/03/11/mysql/%E9%87%8D%E5%81%9A%E6%97%A5%E5%BF%97%E6%96%87%E4%BB%B6%E7%BB%84%E5%86%99%E5%85%A5%E8%BF%87%E7%A8%8B.drawio_1.png" class="">
+
+<p>所以 InnoDB 存储引擎会先写 ib_logfile0 文件，当 ib_logfile0 文件被写满的时候，会切换至 ib_logfile1 文件，当 ib_logfile1 文件也被写满时，会切换回 ib_logfile0 文件。</p>
+<p>我们知道 redo log 是为了防止 Buffer Pool 中的脏页丢失而设计的，那么如果随着系统运行，Buffer Pool 的脏页刷新到了磁盘中，那么 redo log 对应的记录也就没用了，这时候我们擦除这些旧记录，以腾出空间记录新的更新操作。</p>
+<img src="/2020/03/11/mysql/mysql-checkpoint.png" class="">
+
+<p>图中的：</p>
+<ul>
+<li>write pos 和 checkpoint 的移动都是顺时针方向；</li>
+<li>write pos ～ checkpoint 之间的部分（图中的红色部分），用来记录新的更新操作；</li>
+<li>check point ～ write pos 之间的部分（图中蓝色部分）：待落盘的脏数据页记录；</li>
+</ul>
+<p>如果 write pos 追上了 checkpoint，就意味着 <strong>redo log 文件满了，这时 MySQL 不能再执行新的更新操作，也就是说 MySQL 会被阻塞</strong>（<em>因此所以针对并发量大的系统，适当设置 redo log 的文件大小非常重要</em>），此时<strong>会停下来将 Buffer Pool 中的脏页刷新到磁盘中，然后标记 redo log 哪些记录可以被擦除，接着对旧的 redo log 记录进行擦除，等擦除完旧记录腾出了空间，checkpoint 就会往后移动（图中顺时针）</strong>，然后 MySQL 恢复正常运行，继续执行新的更新操作。</p>
+<p>所以，一次 checkpoint 的过程就是脏页刷新到磁盘中变成干净页，然后标记 redo log 哪些记录可以被覆盖的过程。</p>
+<hr>
+<h2 id="binlog"><a href="#binlog" class="headerlink" title="binlog"></a>binlog</h2><p>前面介绍的 undo log 和 redo log 这两个日志都是 Innodb 存储引擎生成的。</p>
+<p>MySQL 在完成一条更新操作后，Server 层还会生成一条 binlog，等之后事务提交的时候，会将该事物执行过程中产生的所有 binlog 统一写 入 binlog 文件。</p>
+<p>binlog 文件是记录了所有数据库表结构变更和表数据修改的日志，不会记录查询类的操作，比如 SELECT 和 SHOW 操作。</p>
+<hr>
+<p>为什么有了 binlog， 还要有 redo log？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">binlog 是 mysql server 层的日志，只记录sql执行。</span><br><span class="line">redolog 是 innodb 引擎实现，主要用于实现crash-safe，在崩溃后重启时对数据进行恢复。</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>主从复制是怎么实现？</p>
+<p>MySQL 的主从复制依赖于 binlog ，也就是记录 MySQL 上的所有变化并以二进制形式保存在磁盘上。复制的过程就是将 binlog 中的数据从主库传输到从库上。</p>
+<p>这个过程一般是<strong>异步</strong>的，也就是主库上执行事务操作的线程不会等待复制 binlog 的线程同步完成。</p>
+<img src="/2020/03/11/mysql/mysql-binlog%E4%B8%BB%E4%BB%8E.drawio.png" class="">
+
+<p>具体详细过程如下：</p>
+<ul>
+<li>MySQL 主库在收到客户端<strong>提交事务的请求之后，会先写入 binlog，再提交事务</strong>，更新存储引擎中的数据，事务提交完成后，返回给客户端“操作成功”的响应。</li>
+<li>从库会创建一个专门的 I&#x2F;O 线程，连接主库的 log dump 线程，来接收主库的 binlog 日志，再把 binlog 信息写入 relay log 的中继日志里，再返回给主库“复制成功”的响应。</li>
+<li>从库会创建一个用于回放 binlog 的线程，去读 relay log 中继日志，然后回放 binlog 更新存储引擎中的数据，最终实现主从的数据一致性。</li>
+</ul>
+<hr>
+<p>从库是不是越多越好？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">不是的。</span><br><span class="line"></span><br><span class="line">因为从库数量增加，从库连接上来的 I/O 线程也比较多，主库也要创建同样多的 <span class="built_in">log</span> dump 线程来处理复制的请求，对主库资源消耗比较高，同时还受限于主库的网络带宽。</span><br><span class="line"></span><br><span class="line">所以在实际使用中，一个主库一般跟 2～3 个从库（1 套数据库，1 主 2 从 1 备主），这就是一主多从的 MySQL 集群结构。</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>MySQL 主从复制还有哪些模型？</p>
+<ul>
+<li><strong>同步复制</strong>：MySQL 主库提交事务的线程要等待所有从库的复制成功响应，才返回客户端结果。这种方式在实际项目中，基本上没法用，原因有两个：一是性能很差，因为要复制到所有节点才返回响应；二是可用性也很差，主库和所有从库任何一个数据库出问题，都会影响业务。</li>
+<li><strong>异步复制</strong>（默认模型）：MySQL 主库提交事务的线程并不会等待 binlog 同步到各从库，就返回客户端结果。这种模式一旦主库宕机，数据就会发生丢失。</li>
+<li><strong>半同步复制</strong>：MySQL 5.7 版本之后增加的一种复制方式，介于两者之间，事务线程不用等待所有的从库复制成功响应，只要一部分复制成功响应回来就行，比如一主二从的集群，只要数据成功复制到任意一个从库上，主库的事务线程就可以返回给客户端。这种<strong>半同步复制的方式，兼顾了异步复制和同步复制的优点，即使出现主库宕机，至少还有一个从库有最新的数据，不存在数据丢失的风险</strong>。</li>
+</ul>
+<hr>
+<p>binlog 什么时候刷盘？</p>
+<p>事务执行过程中，先把日志写到 binlog cache（Server 层的 cache），事务提交的时候，再把 binlog cache 写到 binlog 文件中。</p>
+<p>MySQL 给 binlog cache 分配了一片内存，每个线程一个，参数 binlog_cache_size 用于控制单个线程内 binlog cache 所占内存的大小。如果超过了这个参数规定的大小，就要暂存到磁盘。</p>
+<p>在事务提交的时候，执行器把 binlog cache 里的完整事务写入到 binlog 文件中，并清空 binlog cache。如下图：</p>
+<img src="/2020/03/11/mysql/binlogcache.drawio.png" class="">
+
+<p>虽然每个线程有自己 binlog cache，但是最终都写到同一个 binlog 文件：</p>
+<ul>
+<li>图中的 write，指的就是指把日志写入到 binlog 文件，但是并没有把数据持久化到磁盘，因为数据还缓存在文件系统的 page cache 里，write 的写入速度还是比较快的，因为不涉及磁盘 I&#x2F;O。</li>
+<li>图中的 fsync，才是将数据持久化到磁盘的操作，这里就会涉及磁盘 I&#x2F;O，所以频繁的 fsync 会导致磁盘的 I&#x2F;O 升高。</li>
+</ul>
+<p>MySQL提供一个 sync_binlog 参数来控制数据库的 binlog 刷到磁盘上的频率：</p>
+<ul>
+<li>sync_binlog &#x3D; 0 的时候，表示每次提交事务都只 write，不 fsync，后续交由操作系统决定何时将数据持久化到磁盘；</li>
+<li>sync_binlog &#x3D; 1 的时候，表示每次提交事务都会 write，然后马上执行 fsync；</li>
+<li>sync_binlog &#x3D;N(N&gt;1) 的时候，表示每次提交事务都 write，但累积 N 个事务后才 fsync。</li>
+</ul>
+<p>在MySQL中系统默认的设置是 sync_binlog &#x3D; 0，也就是不做任何强制性的磁盘刷新指令，这时候的性能是最好的，但是风险也是最大的。因为一旦主机发生异常重启，还没持久化到磁盘的数据就会丢失。</p>
+<p>如果能容少量事务的 binlog 日志丢失的风险，为了提高写入的性能，一般会 sync_binlog 设置为 100~1000 中的某个数值。</p>
+<hr>
+<h2 id="两阶段提交"><a href="#两阶段提交" class="headerlink" title="两阶段提交"></a>两阶段提交</h2><p>事务提交后，redo log 和 binlog 都要持久化到磁盘，但是这两个是独立的逻辑，可能出现半成功的状态，这样就造成两份日志之间的逻辑不一致。</p>
+<p>举个例子，假设 id &#x3D; 1 这行数据的字段 name 的值原本是 ‘jay’，然后执行 <code>UPDATE t_user SET name = &#39;xiaolin&#39; WHERE id = 1;</code> 如果在持久化 redo log 和 binlog 两个日志的过程中，出现了半成功状态，那么就有两种情况：</p>
+<ul>
+<li><strong>如果在将 redo log 刷入到磁盘之后， MySQL 突然宕机了，而 binlog 还没有来得及写入</strong>。MySQL 重启后，通过 redo log 能将 Buffer Pool 中 id &#x3D; 1 这行数据的 name 字段恢复到新值 xiaolin，但是 binlog 里面没有记录这条更新语句，在主从架构中，binlog 会被复制到从库，由于 binlog 丢失了这条更新语句，从库的这一行 name 字段是旧值 jay，与主库的值不一致性；</li>
+<li><strong>如果在将 binlog 刷入到磁盘之后， MySQL 突然宕机了，而 redo log 还没有来得及写入</strong>。由于 redo log 还没写，崩溃恢复以后这个事务无效，所以 id &#x3D; 1 这行数据的 name 字段还是旧值 jay，而 binlog 里面记录了这条更新语句，在主从架构中，binlog 会被复制到从库，从库执行了这条更新语句，那么这一行 name 字段是新值 xiaolin，与主库的值不一致性；</li>
+</ul>
+<p>可以看到，在持久化 redo log 和 binlog 这两份日志的时候，如果出现半成功的状态，就会造成主从环境的数据不一致性。这是因为 redo log 影响主库的数据，binlog 影响从库的数据，所以 redo log 和 binlog 必须保持一致才能保证主从数据一致。</p>
+<p><strong>MySQL 为了避免出现两份日志之间的逻辑不一致的问题，使用了「两阶段提交」来解决</strong>，两阶段提交其实是分布式事务一致性协议，它可以保证多个逻辑操作要不全部成功，要不全部失败，不会出现半成功的状态。</p>
+<p><strong>两阶段提交把单个事务的提交拆分成了 2 个阶段，分别是「准备（Prepare）阶段」和「提交（Commit）阶段」</strong>，每个阶段都由协调者（Coordinator）和参与者（Participant）共同完成。注意，不要把提交（Commit）阶段和 commit 语句混淆了，commit 语句执行的时候，会包含提交（Commit）阶段。</p>
+<h3 id="两阶段提交的过程"><a href="#两阶段提交的过程" class="headerlink" title="两阶段提交的过程 *"></a>两阶段提交的过程 *</h3><p>在 MySQL 的 InnoDB 存储引擎中，开启 binlog 的情况下，MySQL 会同时维护 binlog 日志与 InnoDB 的 redo log，为了保证这两个日志的一致性，MySQL 使用了<strong>内部 XA 事务</strong>（是的，也有外部 XA 事务，跟本文不太相关，我就不介绍了），内部 XA 事务由 binlog 作为协调者，存储引擎是参与者。</p>
+<p>当客户端执行 commit 语句或者在自动提交的情况下，MySQL 内部开启一个 XA 事务，<strong>分两阶段来完成 XA 事务的提交</strong>，如下图：</p>
+<img src="/2020/03/11/mysql/mysql-%E4%B8%A4%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4b.drawio.png" class="">
+
+<p>从图中可看出，事务的提交过程有两个阶段，就是<strong>将 redo log 的写入拆成了两个步骤：prepare 和 commit，中间再穿插写入binlog</strong>，具体如下：</p>
+<ul>
+<li><strong>prepare 阶段</strong>：将 XID（内部 XA 事务的 ID） 写入到 redo log，同时将 redo log 对应的事务状态设置为 prepare，然后将 redo log 刷新到硬盘；</li>
+<li><strong>commit 阶段</strong>：把 XID 写入到 binlog，然后将 binlog 刷新到磁盘，接着调用引擎的提交事务接口，将 redo log 状态设置为 commit（将事务设置为 commit 状态后，刷入到磁盘 redo log 文件，所以 commit 状态也是会刷盘的）；</li>
+</ul>
+<p>我们来看看在两阶段提交的不同时刻，MySQL 异常重启会出现什么现象？下图中有时刻 A 和时刻 B 都有可能发生崩溃：</p>
+<img src="/2020/03/11/mysql/mysql-%E4%B8%A4%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4.drawio.png" class="">
+
+<p>不管是时刻 A（已经 redo log，还没写入 binlog），还是时刻 B （已经写入 redo log 和 binlog，还没写入 commit 标识）崩溃，<strong>此时的 redo log 都处于 prepare 状态</strong>。</p>
+<p>在 MySQL 重启后会按顺序扫描 redo log 文件，碰到处于 prepare 状态的 redo log，就拿着 redo log 中的 XID 去 binlog 查看是否存在此 XID：</p>
+<ul>
+<li><strong>如果 binlog 中没有当前内部 XA 事务的 XID，说明 redolog 完成刷盘，但是 binlog 还没有刷盘，则回滚事务</strong>。对应时刻 A 崩溃恢复的情况。</li>
+<li><strong>如果 binlog 中有当前内部 XA 事务的 XID，说明 redolog 和 binlog 都已经完成了刷盘，则提交事务</strong>。对应时刻 B 崩溃恢复的情况。</li>
+</ul>
+<p>可以看到，<strong>对于处于 prepare 阶段的 redo log，即可以提交事务，也可以回滚事务，这取决于是否能在 binlog 中查找到与 redo log 相同的 XID</strong>，如果有就提交事务，如果没有就回滚事务。这样就可以保证 redo log 和 binlog 这两份日志的一致性了。</p>
+<p>所以说，<strong>两阶段提交是以 binlog 写成功为事务提交成功的标识</strong>，因为 binlog 写成功了，就意味着能在 binlog 中查找到与 redo log 相同的 XID。</p>
+<p>处于 prepare 阶段的 redo log 加上完整 binlog，重启就提交事务，MySQL 为什么要这么设计?</p>
+<p>binlog 已经写入了，之后就会被从库（或者用这个 binlog 恢复出来的库）使用。</p>
+<p>所以，在主库上也要提交这个事务。采用这个策略，主库和备库的数据就保证了一致性。</p>
+<hr>
+<p>事务没提交的时候，redo log 会被持久化到磁盘吗？</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">会的。</span><br><span class="line"></span><br><span class="line">事务执行中间过程的 redo <span class="built_in">log</span> 也是直接写在 redo <span class="built_in">log</span> buffer 中的，这些缓存在 redo <span class="built_in">log</span> buffer 里的 redo <span class="built_in">log</span> 也会被「后台线程」每隔一秒一起持久化到磁盘。</span><br><span class="line"></span><br><span class="line">也就是说，事务没提交的时候，redo <span class="built_in">log</span> 也是可能被持久化到磁盘的。</span><br><span class="line"></span><br><span class="line">有的同学可能会问，如果 mysql 崩溃了，还没提交事务的 redo <span class="built_in">log</span> 已经被持久化磁盘了，mysql 重启后，数据不就不一致了？</span><br><span class="line"></span><br><span class="line">放心，这种情况 mysql 重启会进行回滚操作，因为事务没提交的时候，binlog 是还没持久化到磁盘的。</span><br><span class="line"></span><br><span class="line">所以， redo <span class="built_in">log</span> 可以在事务没提交之前持久化到磁盘，但是 binlog 必须在事务提交之后，才可以持久化到磁盘。</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>两阶段提交虽然保证了两个日志文件的数据一致性，但是性能很差，主要有两个方面的影响：</p>
+<ul>
+<li><strong>磁盘 I&#x2F;O 次数高</strong>：对于“双1”配置，每个事务提交都会进行两次 fsync（刷盘），一次是 redo log 刷盘，另一次是 binlog 刷盘。</li>
+<li><strong>锁竞争激烈</strong>：两阶段提交虽然能够保证「单事务」两个日志的内容一致，但在「多事务」的情况下，却不能保证两者的提交顺序一致，因此，在两阶段提交的流程基础上，还需要加一个锁来保证提交的原子性，从而保证多事务的情况下，两个日志的提交顺序一致。</li>
+</ul>
+<hr>
+<h3 id="一个update-的执行过程"><a href="#一个update-的执行过程" class="headerlink" title="一个update 的执行过程"></a>一个update 的执行过程</h3><p>当优化器分析出成本最小的执行计划后，执行器就按照执行计划开始进行更新操作。</p>
+<p>具体更新一条记录 <code>UPDATE t_user SET name = &#39;xiaolin&#39; WHERE id = 1;</code> 的流程如下:</p>
+<ol>
+<li>执行器负责具体执行，会调用存储引擎的接口，通过主键索引树搜索获取 id &#x3D; 1 这一行记录：<ul>
+<li>如果 id&#x3D;1 这一行所在的数据页本来就在 buffer pool 中，就直接返回给执行器更新；</li>
+<li>如果记录不在 buffer pool，将数据页从磁盘读入到 buffer pool，返回记录给执行器。</li>
+</ul>
+</li>
+<li>执行器得到聚簇索引记录后，会看一下更新前的记录和更新后的记录是否一样：<ul>
+<li>如果一样的话就不进行后续更新流程；</li>
+<li>如果不一样的话就把更新前的记录和更新后的记录都当作参数传给 InnoDB 层，让 InnoDB 真正的执行更新记录的操作；</li>
+</ul>
+</li>
+<li>开启事务， InnoDB 层更新记录前，首先要记录相应的 undo log，因为这是更新操作，需要把被更新的列的旧值记下来，也就是要生成一条 undo log，undo log 会写入 Buffer Pool 中的 Undo 页面，不过在内存修改该 Undo 页面后，需要记录对应的 redo log。</li>
+<li>InnoDB 层开始更新记录，会先更新内存（同时标记为脏页），然后将记录写到 redo log 里面，这个时候更新就算完成了。为了减少磁盘I&#x2F;O，不会立即将脏页写入磁盘，后续由后台线程选择一个合适的时机将脏页写入到磁盘。这就是 <strong>WAL 技术</strong>，MySQL 的写操作并不是立刻写到磁盘上，而是先写 redo 日志，然后在合适的时间再将修改的行数据写到磁盘上。</li>
+<li>至此，一条记录更新完了。</li>
+<li>在一条更新语句执行完成后，然后开始记录该语句对应的 binlog，此时记录的 binlog 会被保存到 binlog cache，并没有刷新到硬盘上的 binlog 文件，在事务提交时才会统一将该事务运行过程中的所有 binlog 刷新到硬盘。</li>
+<li>事务提交。</li>
+</ol>
+<h3 id="组提交"><a href="#组提交" class="headerlink" title="组提交"></a>组提交</h3><p><strong>MySQL 引入了 binlog 组提交（group commit）机制，当有多个事务提交的时候，会将多个 binlog 刷盘操作合并成一个，从而减少磁盘 I&#x2F;O 的次数</strong>，如果说 10 个事务依次排队刷盘的时间成本是 10，那么将这 10 个事务一次性一起刷盘的时间成本则近似于 1。</p>
+<p>引入了组提交机制后，prepare 阶段不变，只针对 commit 阶段，将 commit 阶段拆分为三个过程：</p>
+<ul>
+<li><strong>flush 阶段</strong>：多个事务按进入的顺序将 binlog 从 cache 写入文件（不刷盘）；</li>
+<li><strong>sync 阶段</strong>：对 binlog 文件做 fsync 操作（多个事务的 binlog 合并一次刷盘）；</li>
+<li><strong>commit 阶段</strong>：各个事务按顺序做 InnoDB commit 操作；</li>
+</ul>
+<h1 id="常用工具"><a href="#常用工具" class="headerlink" title="常用工具"></a>常用工具</h1><h2 id="检查"><a href="#检查" class="headerlink" title="检查"></a>检查</h2><p>查看连接mysql的客户端</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">show processlist;</span><br></pre></td></tr></table></figure>
+
+<p>查看空闲链接的最大时长</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">show variables like &#x27;wait_timeout&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p>断开链接</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">kill connection +6;</span><br></pre></td></tr></table></figure>
+
+<p>查看MySQL 的连接数限制</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">show variables like &#x27;max_connections&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p>查看当前事务</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT * FROM information_schema.INNODB_TRX\G;</span><br></pre></td></tr></table></figure>
+
+<p>查看锁</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># mysql 8.0.* 之前的版本使用该方式查询</span></span><br><span class="line">SELECT * FROM information_schema.INNODB_LOCKS\G</span><br><span class="line"></span><br><span class="line"><span class="comment"># mysql 8.0.1 之后的版本使用</span></span><br><span class="line">SELECT * FROM performance_schema.data_locks\G</span><br></pre></td></tr></table></figure>
+
+<p>查看因为锁而等待的</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># mysql 8.0.1 之前的版本使用该方式查询</span></span><br><span class="line">SELECT * FROM INFORMATION_SCHEMA.INNODB_LOCK_WAITS\G</span><br><span class="line"></span><br><span class="line"><span class="comment"># mysql 8.0.1 之后的版本使用</span></span><br><span class="line">SELECT * FROM performance_schema.data_lock_waits\G</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><h3 id="explain"><a href="#explain" class="headerlink" title="explain"></a>explain</h3><p> explain 命令看到的这条语句的执行情况。 explain [要查看的sql]，例如：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">explain select * from t <span class="built_in">where</span> a between 10000 and 20000;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">## 对于执行计划，参数有：</span></span><br><span class="line">possible_keys 字段表示可能用到的索引；表示mysql可以选择的索引，多个的时候以 <span class="string">&quot;,&quot;</span>  分隔</span><br><span class="line">key 字段表示实际用的索引，如果这一项为 NULL，说明没有使用索引；</span><br><span class="line">key_len 表示索引的长度；</span><br><span class="line">rows 表示扫描的数据行数。</span><br><span class="line"><span class="built_in">type</span> 表示数据扫描类型，我们需要重点看这个。</span><br><span class="line">extra </span><br><span class="line"></span><br><span class="line"><span class="comment">## type 字段就是描述了找到所需数据时使用的扫描方式是什么，常见扫描类型的执行效率从低到高的顺序为：</span></span><br><span class="line">All（全表扫描）；</span><br><span class="line">index（全索引扫描）；</span><br><span class="line">range（索引范围扫描）；<span class="comment">## 一般在 where 子句中使用 &lt; 、&gt;、in、between 等关键词，只检索给定范围的行，属于范围查找</span></span><br><span class="line">ref（非唯一索引扫描）；</span><br><span class="line">eq_ref（唯一索引扫描）；</span><br><span class="line">const（结果只有一条的主键或唯一索引扫描）。</span><br><span class="line"></span><br><span class="line"><span class="comment">## extra 字段</span></span><br><span class="line">Using filesort ：当查询语句中包含 group by 操作，而且无法利用索引完成排序操作的时候， 这时不得不选择相应的排序算法进行，甚至可能会通过文件排序，效率是很低的，所以要避免这种问题的出现。</span><br><span class="line">Using temporary：使了用临时表保存中间结果，MySQL 在对查询结果排序时使用临时表，常见于排序 order by 和分组查询 group by。效率低，要避免这种问题的出现。</span><br><span class="line">Using index：所需数据只需在索引即可全部获得，不须要再到表中取数据，也就是使用了覆盖索引，避免了回表操作，效率不错。</span><br><span class="line">Using Index condition，表示使用到了索引下推（有回表），例如查询 age&gt;10 and name=zhang </span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="select-from-performance-schema-data-locks-G"><a href="#select-from-performance-schema-data-locks-G" class="headerlink" title="select * from performance_schema.data_locks\G;"></a>select * from performance_schema.data_locks\G;</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">主要看</span><br><span class="line">INDEX_NAME——使用的索引</span><br><span class="line">LOCK_TYPE: RECORD <span class="comment">### RECORD 表示行级锁</span></span><br><span class="line">LOCK_MODE: X,GAP,INSERT_INTENTION <span class="comment">##</span></span><br><span class="line"><span class="comment"># X 代表独占锁；</span></span><br><span class="line"><span class="comment"># X,GAP代表间隙锁；</span></span><br><span class="line"><span class="comment"># X,REC_NOT_GAP代表行锁；</span></span><br><span class="line"><span class="comment"># S 代表共享锁；</span></span><br><span class="line"><span class="comment"># INSERT_INTENTION代表插入意向锁；</span></span><br><span class="line">LOCK_STATUS: WAITING <span class="comment">## GRENTED表示已经获得锁，WAITING表示在等待锁</span></span><br><span class="line">LOCK_DATA: <span class="comment">### 一般是一个节点的值。我们默认这个节点往左的间隙锁加到一起算一个next-key锁，然后根据前面LOCK_MODE来判断是行锁还是间隙锁还是next-key锁。</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>database</category>
+        <category>mysql</category>
+        <category>mysql</category>
+      </categories>
+      <tags>
+        <tag>数据库</tag>
+        <tag>database</tag>
+      </tags>
+  </entry>
 </search>

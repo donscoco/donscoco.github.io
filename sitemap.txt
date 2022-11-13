@@ -1,3 +1,4 @@
+https://donscoco.github.io/2020/03/11/mysql/
 https://donscoco.github.io/2018/01/30/Process&&Thread/
 https://donscoco.github.io/2016/10/25/HTTP/
 https://donscoco.github.io/2020/10/02/%E8%AF%BB%E5%86%99%E9%94%81%E2%80%94%E2%80%94golang%E4%BE%8B%E5%AD%90/
@@ -15,6 +16,8 @@ https://donscoco.github.io/tags/%E9%94%81/
 https://donscoco.github.io/tags/%E4%B8%AA%E4%BA%BA%E6%83%B3%E6%B3%95/
 https://donscoco.github.io/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/
 https://donscoco.github.io/tags/%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/
+https://donscoco.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/
+https://donscoco.github.io/tags/database/
 https://donscoco.github.io/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/
 https://donscoco.github.io/categories/%E9%94%81/
 https://donscoco.github.io/categories/%E9%94%81/%E8%AF%BB%E5%86%99%E9%94%81/
@@ -26,3 +29,6 @@ https://donscoco.github.io/categories/different/
 https://donscoco.github.io/categories/concept/
 https://donscoco.github.io/categories/os/
 https://donscoco.github.io/categories/os/scheduling/
+https://donscoco.github.io/categories/database/
+https://donscoco.github.io/categories/database/mysql/
+https://donscoco.github.io/categories/mysql/

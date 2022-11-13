@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://donscoco.github.io/2020/03/11/mysql/</loc>
+    
+    <lastmod>2022-11-13</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://donscoco.github.io/2018/01/30/Process&&Thread/</loc>
     
     <lastmod>2022-10-31</lastmod>
@@ -67,7 +76,7 @@
 
   <url>
     <loc>https://donscoco.github.io/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -75,63 +84,77 @@
   
   <url>
     <loc>https://donscoco.github.io/tags/HTTP/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/HTTPS/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/HTTP2/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/process/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/thread/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/%E9%94%81/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/%E4%B8%AA%E4%BA%BA%E6%83%B3%E6%B3%95/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/tags/%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://donscoco.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/</loc>
+    <lastmod>2022-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://donscoco.github.io/tags/database/</loc>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
@@ -140,77 +163,98 @@
   
   <url>
     <loc>https://donscoco.github.io/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/%E9%94%81/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/%E9%94%81/%E8%AF%BB%E5%86%99%E9%94%81/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/golang/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/Network/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/Network/Protocol/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/Network/Protocol/http/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/different/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/concept/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/os/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://donscoco.github.io/categories/os/scheduling/</loc>
-    <lastmod>2022-10-31</lastmod>
+    <lastmod>2022-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://donscoco.github.io/categories/database/</loc>
+    <lastmod>2022-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://donscoco.github.io/categories/database/mysql/</loc>
+    <lastmod>2022-11-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://donscoco.github.io/categories/mysql/</loc>
+    <lastmod>2022-11-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
