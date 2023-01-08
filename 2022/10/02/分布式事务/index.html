@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"donscoco.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="事务：当多个线程对数据库中的同一个信息进行修改的时候，为保证数据的原子性、一致性、隔离性、持久性，需要进行本地事务性操作。而在分布式的网络环境下，也会面临多个客户端的数据请求服务。在处理数据变更的时候，需要保证在分布式环境下的数据的正确完整，因此在分布式环境下也引入了分布式事务。 分布式事务：分布式事务是指事务的参与者、支持事务的服务器、资源服务器以及事务管理器分别位于不同的分布式系统的不同节点之">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式事务">
+<meta property="og:url" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/index.html">
+<meta property="og:site_name" content="donscoco">
+<meta property="og:description" content="事务：当多个线程对数据库中的同一个信息进行修改的时候，为保证数据的原子性、一致性、隔离性、持久性，需要进行本地事务性操作。而在分布式的网络环境下，也会面临多个客户端的数据请求服务。在处理数据变更的时候，需要保证在分布式环境下的数据的正确完整，因此在分布式环境下也引入了分布式事务。 分布式事务：分布式事务是指事务的参与者、支持事务的服务器、资源服务器以及事务管理器分别位于不同的分布式系统的不同节点之">
+<meta property="og:locale">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/2pc-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/2pc-2.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/3pc-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/tcc-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/local-msg-table.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/local-msg-table-2.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/mq-transaction.drawio.png">
+<meta property="article:published_time" content="2022-10-01T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-08T18:30:49.087Z">
+<meta property="article:author" content="donscoco">
+<meta property="article:tag" content="分布式">
+<meta property="article:tag" content="分布式事务">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/2pc-1.drawio.png">
+
+<link rel="canonical" href="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>分布式事务 | donscoco</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">donscoco</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Misaka.jpg">
+      <meta itemprop="name" content="donscoco">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="donscoco">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式事务
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2022-10-02 00:00:00" itemprop="dateCreated datePublished" datetime="2022-10-02T00:00:00+08:00">2022-10-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-01-09 02:30:49" itemprop="dateModified" datetime="2023-01-09T02:30:49+08:00">2023-01-09</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/%E4%BA%8B%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">事务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>事务：当多个线程对数据库中的同一个信息进行修改的时候，为保证数据的原子性、一致性、隔离性、持久性，需要进行本地事务性操作。而在分布式的网络环境下，也会面临多个客户端的数据请求服务。在处理数据变更的时候，需要保证在分布式环境下的数据的正确完整，因此在分布式环境下也引入了分布式事务。</p>
+<p>分布式事务：分布式事务是指事务的参与者、支持事务的服务器、资源服务器以及事务管理器分别位于不同的分布式系统的不同节点之上。本质上来说，分布式事务就是为了保证不同数据库的数据一致性。</p>
+<h1 id="二阶段提交"><a href="#二阶段提交" class="headerlink" title="二阶段提交"></a>二阶段提交</h1><h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p>二阶段提交（Two-phase Commit）简称 2PC，是解决分布式事务的方式。要么所有参与进程都提交事务，要么都取消事务，即实现ACID中的原子性（A）的常用手段。</p>
+<p>分布式事务：事务提供一种操作本地数据库的不可分割的一系列操作。要么什么都不做，要么做全套（All or Nothing）。</p>
+<h2 id="运行过程"><a href="#运行过程" class="headerlink" title="运行过程"></a>运行过程</h2><p>二阶段执行成功</p>
+<img src="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/2pc-1.drawio.png" class="">
+
+
+
+<p>二阶段执行失败</p>
+<img src="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/2pc-2.drawio.png" class="">
+
+
+
+<p>缺点</p>
+<ul>
+<li><p>同步阻塞性能问题</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">在二阶段提交的执行的过程中，所有参与该事务操作的逻辑都处于堵塞状态。当参与者占用公共资源时，其他参与者一直处于锁定事务资源的状态中，而无法完成事务操作。不适合于高并发场景</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>可靠性问题</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">一旦事务管理器出现故障，整个系统不可用</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>数据不一致</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">在阶段二，如果事务管理器只发送了部分 commit 消息，此时网络发生异常，那么只有部分参与者接收到 commit 消息，也就是说只有部分参与者提交了事务，使得系统数据不一致。</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>不确定性</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当协调者事务管理器发送 commit 之后，并且此时只有一个参与者收到了 commit，那么当该参与者与事务管理器同时宕机之后，重新选举的事务管理器无法确定该条消息是否提交成功。</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>解决思路：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">是否可以在协调者这里做一个redolog，每次发起事务后写入到redolog中，收到全员commit 成功后再移除，这样宕机后，重启或者选举新leader来，可以根据redolog检查各个参与者的commit情况，如果都没有commit成功，那就无事发生，清除redolog，如果有部分参与者commit成功，那就补充其他参与者的commit。如果都commit成功，那也无事发生，直接清除redolog。（参考mysql-innodb）</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="三阶段提交"><a href="#三阶段提交" class="headerlink" title="三阶段提交"></a>三阶段提交</h1><h2 id="概念-1"><a href="#概念-1" class="headerlink" title="概念"></a>概念</h2><p>3PC，全称为“Three phase commit”，是2PC的改进版，将2PC的“事务提交过程”一分为二，并形成了canCommit、preCommit和doCommit三个阶段组成的事务处理协议。</p>
+<p>特点：</p>
+<ul>
+<li>三阶段提交协议引入了超时机制</li>
+<li>相对于2PC而言，多加了一个canCommit缓冲阶段，保证了<strong>开始执行分布式事务之前各个参与的节点的状态一致</strong>。（分布式实现一致性是最终一致性，也就是存在某些时刻，各个节点处于过渡状态，不一定一致。canCommit保证这些过度已经结束，某个要处理的值在各个节点中是一致的，就会响应成功。）</li>
+</ul>
+<h2 id="运行过程-1"><a href="#运行过程-1" class="headerlink" title="运行过程"></a>运行过程</h2><p>三阶段执行成功</p>
+<img src="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/3pc-1.drawio.png" class="">
+
+
+
+
+
+<p>缺点：</p>
+<p><strong>3PC没有完全解决数据一致性的问题。</strong></p>
+<p>问题：在最后提交的阶段中，万一协调者故障，部分参与者已经commit，而部分参与者没有commit，会出现参与者数据不一致情况。这个问题本质就是协调者是单节点。存在单阶段故障问题，所以还要再改进，将协调者做成具备分布式共识的组件。然后在这个分布式组件中添加redolog机制</p>
+<h1 id="TCC"><a href="#TCC" class="headerlink" title="TCC"></a>TCC</h1><p>TCC(Try Confirm Cancel) 又称为 补偿事务，又叫应用层的两阶段提交。</p>
+<p>TCC事务的处理流程与2PC两阶段提交类似，不过2PC通常都是在处理<strong>DB层面</strong>的事务，而TCC本质上就是一个<strong>应用层面</strong>的2PC，需要通过业务逻辑来实现。</p>
+<p>TCC模型仅提供两阶段原子提交协议，保证分布式事务的原子性。事务的隔离交给业务逻辑来实现。TCC 模型的隔离性思想是，通过对业务的改造将对数据库资源层面加锁上移至对业务层面加锁，从而释放底层数据库锁资源，拓宽分布式事务锁协议，提高系统的并发性。</p>
+<p>本质：对于所有会改动数据状态的操作，都要有一套操作——确认修改和补偿修改。</p>
+<p>注意 confirm和cancel 需要实现幂等</p>
+<p>以A账户向B账户汇款100元为例，图中展示了TCC的流程。汇款服务和收款服务需要分别实现Try、Confirm、Cancel这三个接口，并在业务初始化阶段将这三个接口的实现注入TCC事务管理器。</p>
+<img src="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/tcc-1.drawio.png" class="">
+
+
+
+
+
+<p>Try 阶段：这个阶段其实就是检查资源和锁定资源的操作。或者说进行一个预留（或者先扣减，如果失败再补偿。）</p>
+<p>Confirm 阶段：确认执行真正执行业务，不作任何业务检查，只使用 Try 阶段预留的业务资源，Confirm 操作满足幂等性。要求具备幂等设计，Confirm 失败后需要进行重试。</p>
+<p>Cancel 阶段：释放 Try 阶段预留的业务资源 Cancel 操作满足幂等性 Cancel 阶段的异常和 Confirm 阶段异常处理方案基本上一致。</p>
+<p>优点：可以让<strong>应用自己定义数据库操作的粒度，使得降低锁冲突、提高吞吐量</strong></p>
+<p>注意：confirm和cancel接口还必须实现幂等。</p>
+<p>有了补偿机制之后，由业务活动管理器控制一致性</p>
+<h1 id="本地消息表"><a href="#本地消息表" class="headerlink" title="本地消息表"></a>本地消息表</h1><p> 将事务状态写入到新的表。相当于做了一个redolog，用来检查事务执行状态</p>
+<p>正常处理：</p>
+<img src="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/local-msg-table.drawio.png" class="">
+
+
+
+<p>出现错误情况处理：</p>
+<img src="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/local-msg-table-2.drawio.png" class="">
+
+
+
+<p>&#x2F;&#x2F; todo</p>
+<h1 id="MQ事务"><a href="#MQ事务" class="headerlink" title="MQ事务"></a>MQ事务</h1><p>一致性方案是通过消息中间件保证上下游应用数据操作一致性的。基本思路是，将本地操作和发送消息放在同一个本地事务中，下游应用从消息系统订阅该消息，收到消息后执行相应的操作，本质上是依靠消息的重试机制达到最终一致性的。</p>
+<img src="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/mq-transaction.drawio.png" class="">
+
+
+
+<p>缺点是，耦合度高，需要在业务系统中引入消息中间件，将导致系统复杂度增加。</p>
+<p>&#x2F;&#x2F; todo</p>
+<p>2PC&#x2F;3PC：依赖于数据库，能够很好的提供强一致性和强事务性，但延迟比较高，比较适合传统的单体应用，在同一个方法中存在跨库操作的情况，不适合高并发和高性能要求的场景。<br>TCC：适用于执行时间确定且较短，实时性要求高，对数据一致性要求高，比如互联网金融企业最核心的三个服务：交易、支付、账务。<br>本地消息表&#x2F;MQ 事务：适用于事务中参与方支持操作幂等，对一致性要求不高，业务上能容忍数据不一致到一个人工检查周期，事务涉及的参与方、参与环节较少，业务上有对账&#x2F;校验系统兜底。<br>Saga 事务：由于 Saga 事务不能保证隔离性，需要在业务层控制并发，适合于业务场景事务并发操作同一资源较少的情况。Saga 由于缺少预提交动作，导致补偿动作的实现比较麻烦，例如业务是发送短信，补偿动作则得再发送一次短信说明撤销，用户体验比较差。所以，Saga 事务较适用于补偿动作容易处理的场景</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.qq.com/doc/DY0VxSkVGWHFYSlZJ">https://docs.qq.com/doc/DY0VxSkVGWHFYSlZJ</a></p>
+<p><a target="_blank" rel="noopener" href="https://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/ZooKeeper%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98-%E5%AE%8C/28%20%E5%BD%BB%E5%BA%95%E6%8E%8C%E6%8F%A1%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E4%B8%89%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86.md">https://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/ZooKeeper%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90%E4%B8%8E%E5%AE%9E%E6%88%98-%E5%AE%8C/28%20%E5%BD%BB%E5%BA%95%E6%8E%8C%E6%8F%A1%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E4%B8%89%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86.md</a></p>
+<p><a target="_blank" rel="noopener" href="https://terwergreen.com/post/two-phase-commit-protocol-of-distributed-consistency-protocol.html">https://terwergreen.com/post/two-phase-commit-protocol-of-distributed-consistency-protocol.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_34162294/article/details/120984951">https://blog.csdn.net/qq_34162294/article/details/120984951</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/142136446">https://zhuanlan.zhihu.com/p/142136446</a></p>
+<p><a target="_blank" rel="noopener" href="https://xiaomi-info.github.io/2020/01/02/distributed-transaction/">https://xiaomi-info.github.io/2020/01/02/distributed-transaction/</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag"># 分布式</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="tag"># 分布式事务</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/01/02/%E8%AF%BB%E4%B9%A6%E8%AE%A1%E5%88%92/" rel="prev" title="读书计划">
+      <i class="fa fa-chevron-left"></i> 读书计划
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/10/05/redis/" rel="next" title="redis">
+      redis <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4"><span class="nav-number">1.</span> <span class="nav-text">二阶段提交</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E5%BF%B5"><span class="nav-number">1.1.</span> <span class="nav-text">概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="nav-number">1.2.</span> <span class="nav-text">运行过程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4"><span class="nav-number">2.</span> <span class="nav-text">三阶段提交</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E5%BF%B5-1"><span class="nav-number">2.1.</span> <span class="nav-text">概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B-1"><span class="nav-number">2.2.</span> <span class="nav-text">运行过程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#TCC"><span class="nav-number">3.</span> <span class="nav-text">TCC</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9C%AC%E5%9C%B0%E6%B6%88%E6%81%AF%E8%A1%A8"><span class="nav-number">4.</span> <span class="nav-text">本地消息表</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#MQ%E4%BA%8B%E5%8A%A1"><span class="nav-number">5.</span> <span class="nav-text">MQ事务</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="donscoco"
+      src="/images/Misaka.jpg">
+  <p class="site-author-name" itemprop="name">donscoco</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/donscoco" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@foxmail.com" title="E-Mail → mailto:donscoco@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/yourname" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;yourname" rel="noopener" target="_blank"><i class="fab fa-weibo fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@gmail.com" title="Google → mailto:donscoco@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/donscoco" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/don.chen.12" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;don.chen.12" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">donscoco</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

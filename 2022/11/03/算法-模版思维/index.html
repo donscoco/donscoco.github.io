@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"donscoco.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="记录一些常用到的模版，套路化，方便自己解决问题的时候更加专注于做事情 递归模版123456func()&amp;#123;	# recursion terminator    1.递归终止条件	# process logic in current level     2.在这一层处理的事情	# drill down    3.到下一层	# reverse the current level status">
+<meta property="og:type" content="article">
+<meta property="og:title" content="算法-模版思维">
+<meta property="og:url" content="https://donscoco.github.io/2022/11/03/%E7%AE%97%E6%B3%95-%E6%A8%A1%E7%89%88%E6%80%9D%E7%BB%B4/index.html">
+<meta property="og:site_name" content="donscoco">
+<meta property="og:description" content="记录一些常用到的模版，套路化，方便自己解决问题的时候更加专注于做事情 递归模版123456func()&amp;#123;	# recursion terminator    1.递归终止条件	# process logic in current level     2.在这一层处理的事情	# drill down    3.到下一层	# reverse the current level status">
+<meta property="og:locale">
+<meta property="article:published_time" content="2022-11-02T19:26:12.000Z">
+<meta property="article:modified_time" content="2023-01-08T18:32:47.274Z">
+<meta property="article:author" content="donscoco">
+<meta property="article:tag" content="算法">
+<meta property="article:tag" content="模版">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://donscoco.github.io/2022/11/03/%E7%AE%97%E6%B3%95-%E6%A8%A1%E7%89%88%E6%80%9D%E7%BB%B4/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>算法-模版思维 | donscoco</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">donscoco</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/11/03/%E7%AE%97%E6%B3%95-%E6%A8%A1%E7%89%88%E6%80%9D%E7%BB%B4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Misaka.jpg">
+      <meta itemprop="name" content="donscoco">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="donscoco">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          算法-模版思维
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2022-11-03 03:26:12" itemprop="dateCreated datePublished" datetime="2022-11-03T03:26:12+08:00">2022-11-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-01-09 02:32:47" itemprop="dateModified" datetime="2023-01-09T02:32:47+08:00">2023-01-09</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%80%9D%E7%BB%B4%E5%A5%97%E8%B7%AF/" itemprop="url" rel="index"><span itemprop="name">思维套路</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%80%9D%E7%BB%B4%E5%A5%97%E8%B7%AF/%E9%81%8D%E5%8E%86/" itemprop="url" rel="index"><span itemprop="name">遍历</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>记录一些常用到的模版，套路化，方便自己解决问题的时候更加专注于做事情</p>
+<h1 id="递归模版"><a href="#递归模版" class="headerlink" title="递归模版"></a>递归模版</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">func</span></span>()&#123;</span><br><span class="line">	<span class="comment"># recursion terminator    1.递归终止条件</span></span><br><span class="line">	<span class="comment"># process logic in current level     2.在这一层处理的事情</span></span><br><span class="line">	<span class="comment"># drill down    3.到下一层</span></span><br><span class="line">	<span class="comment"># reverse the current level status if needed   4.还原本层状态 (联想n-皇后用递归实现的代码)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="遍历模版"><a href="#遍历模版" class="headerlink" title="遍历模版"></a>遍历模版</h1><h2 id="深度遍历"><a href="#深度遍历" class="headerlink" title="深度遍历"></a>深度遍历</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">### 用递归实现</span></span><br><span class="line"><span class="comment"># 如果是图的话，申请一个set（排重），树的DFS和图的DFS一样，只是图要加个排重set</span></span><br><span class="line">func DFS(node,<span class="built_in">set</span>)&#123;</span><br><span class="line">	<span class="comment"># 如果是图的话，加入set</span></span><br><span class="line">	process() <span class="comment">## process 的位置可以放在for后面，取决于想前序遍历还是后序遍历。中序遍历需要方在for里面中间（对于树而言）</span></span><br><span class="line">	<span class="keyword">for</span> next_node := range node.Child &#123; <span class="comment"># 获取node关联节点 nodes</span></span><br><span class="line">  	<span class="comment"># 如果是图的话还需要判断是否set中有的。</span></span><br><span class="line">  	DFS(node.next,<span class="built_in">set</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">### 用栈去实现（递归其实也是这种，只不过系统用的系统栈）</span></span><br><span class="line">func <span class="function"><span class="title">DFS</span></span>()&#123;</span><br><span class="line"><span class="comment"># 栈</span></span><br><span class="line"><span class="comment"># 根节点入栈，包括根节点关联的节点 （入栈顺序决定遍历顺序   rc,lc,p 是前序遍历;rc,p,lc 是中序遍历;p,rc,lc 是后序遍历）</span></span><br><span class="line">  <span class="keyword">for</span> (栈不为空)&#123;</span><br><span class="line">  	<span class="comment"># 出栈</span></span><br><span class="line">  	process()</span><br><span class="line">  	<span class="keyword">for</span> next_node := range node.Child &#123; <span class="comment"># 获取node关联节点 nodes</span></span><br><span class="line">  		<span class="comment"># 如果是图的话还要判断set是否有再入栈</span></span><br><span class="line">  		<span class="comment"># 推入栈 （入栈顺序决定遍历顺序   这个是前序遍历，考虑怎么实现中序遍历和后序遍历——染色）</span></span><br><span class="line">  	&#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func <span class="function"><span class="title">process</span></span>()&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="广度遍历"><a href="#广度遍历" class="headerlink" title="广度遍历"></a>广度遍历</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">func <span class="function"><span class="title">BFS</span></span>()&#123;</span><br><span class="line"><span class="comment"># 队列</span></span><br><span class="line"><span class="comment"># 加入root节点，如果是图的话需要再加入 map（做访问标记，排重）</span></span><br><span class="line">	<span class="keyword">for</span> (队列不空) &#123;</span><br><span class="line">		<span class="comment"># 出队 node</span></span><br><span class="line">		process()</span><br><span class="line">		<span class="keyword">for</span> next_node := range node.Child &#123;<span class="comment"># 获取node关联节点 nodes</span></span><br><span class="line">			<span class="comment"># 如果是图的话还需要判断是否map中有的（做访问过的标记）再加入队列</span></span><br><span class="line">			<span class="comment"># nodes加入队列</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func <span class="function"><span class="title">process</span></span>()&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="M的N次方"><a href="#M的N次方" class="headerlink" title="M的N次方"></a>M的N次方</h2><p>想象一棵树，树枝就是各种可能的情况，遍历所有情况：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 树的遍历 m的n次方，m相当于一层m个节点，n相当于这棵树有n层</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">power</span><span class="params">(m, n, i <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">  <span class="comment">/*判断是否最后一层的叶子节点。关键点就是</span></span><br><span class="line"><span class="comment">  靠每层调用下一层的时候传递的 标志 i代表接下来是第几层*/</span></span><br><span class="line">	<span class="keyword">if</span> i &gt;= n &#123;</span><br><span class="line">    process()<span class="comment">// 叶子节点的处理</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// process() //中间节点的处理（如果需要）</span></span><br><span class="line">  <span class="comment">// 可以想象这里就是一个节点的多个孩子节点分出去。</span></span><br><span class="line">	<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; m; j++ &#123;</span><br><span class="line">		power(m, n, i+<span class="number">1</span>)       </span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>使用例子：</p>
+<p>例如N皇后问题的蛮力法求解，这里m和n相等，但是为区分横和竖还是写作m和n，m代表皇后在一行可以选择落子的种类数，n代表有多少个皇后，每个皇后在所在的那一行选择m种情况落下，这样在不考虑是否冲突的情况下就有 <code>m*m*m*m...*m</code> n个m相乘种情况。然后想象这是一棵树。一棵每个节点有m个孩子节点，然后有n层的树，对应的情况就是每个皇后的m种选择，后面的皇后每人又有m种选择，一直到叶子节点，所有叶子节点就是所有情况。然后我们再在每个叶子节点处进行判断皇后是否冲突，然后塞选（因为这里用的蛮力法，先展示处理啊，而分支限界法就是在蛮力法这棵树的基础上，在一些中间节点就判断冲突，从而进行剪枝。所以最好把蛮力法这种最原始的版本记住，后面剪枝只需要在中间节点进行处理）</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// </span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Q</span><span class="params">(m, n, i <span class="type">int</span>，position []<span class="type">int</span>)</span></span> &#123;</span><br><span class="line">  <span class="comment">/*判断是否最后一层的叶子节点。关键点就是</span></span><br><span class="line"><span class="comment">  靠每层调用下一层的时候传递的 标志 i代表接下来是第几层*/</span></span><br><span class="line">	<span class="keyword">if</span> i &gt;= n &#123;  </span><br><span class="line">    checkVaild()<span class="comment">// 叶子节点的处理</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// process() 中间节点的处理（如果需要）</span></span><br><span class="line">  <span class="comment">// 可以想象这里就是一个节点的多个孩子节点分出去。</span></span><br><span class="line">	<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; m; j++ &#123;</span><br><span class="line">    position[i]=j <span class="comment">//  代表第i层的皇后落在第j格</span></span><br><span class="line">		Q(m, n, i+<span class="number">1</span>) </span><br><span class="line">    position[i]=<span class="number">0</span> <span class="comment">//  把刚才下的情况拿掉，换下一种</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 加上分支限界法的剪枝处理就是</span></span><br><span class="line"><span class="comment">// 这里冲突的情况可以剪枝有 列冲突，撇冲突，捺冲突。</span></span><br><span class="line"><span class="comment">// 对应 cols=&gt;j pie=&gt;i+j na=&gt;i-j</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DFS</span><span class="params">(m, n, i <span class="type">int</span>，position []<span class="type">int</span>)</span></span> &#123;</span><br><span class="line">  <span class="comment">/*判断是否最后一层的叶子节点。关键点就是</span></span><br><span class="line"><span class="comment">  靠每层调用下一层的时候传递的 标志 i代表接下来是第几层*/</span></span><br><span class="line">	<span class="keyword">if</span> i &gt;= n &#123;</span><br><span class="line">    <span class="comment">// 叶子节点的处理,添加到结果集,能走到这里说明没有冲突</span></span><br><span class="line">    result = <span class="built_in">append</span>(result,position)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// process() 中间节点的处理（如果需要）</span></span><br><span class="line">	<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; m; j++ &#123; </span><br><span class="line">    <span class="keyword">if</span> cols.HasNum(j) || pie.HasNum(i+j) || na.HasNum(i-j) &#123;</span><br><span class="line">      <span class="keyword">continue</span>; <span class="comment">// 在选择这条分支的前提就已经发现这里会冲突，所以就跳过</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    position[i]=j <span class="comment">//  代表第i层的皇后落在第j格</span></span><br><span class="line">    </span><br><span class="line">    cols.Add(j) <span class="comment">// 这里是选择落这个格子后，需要加上冲突提供给下一层的人判断。</span></span><br><span class="line">    pie.Add(i+j)</span><br><span class="line">    na.Add(i-j)</span><br><span class="line">    </span><br><span class="line">		DFS(m, n, i+<span class="number">1</span>)  </span><br><span class="line">    </span><br><span class="line">    <span class="comment">/* // 接下来要到兄弟节点上。也就是这个皇后可能选择落点的另一种情况上。</span></span><br><span class="line"><span class="comment">    所以这次的落子情况造成的影响移除*/</span></span><br><span class="line">    cols.Remove(j)</span><br><span class="line">    pie.Remove(i+j)</span><br><span class="line">    na.Remove(i-j)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h1 id="查找模版"><a href="#查找模版" class="headerlink" title="查找模版"></a>查找模版</h1><h2 id="二分模版"><a href="#二分模版" class="headerlink" title="二分模版"></a>二分模版</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">left,right = 0, len(array) - 1</span><br><span class="line"><span class="keyword">while</span> left &lt;= right:</span><br><span class="line">	mid = left + (right - left)/2</span><br><span class="line">	<span class="keyword">if</span> array[mid] == target:</span><br><span class="line">		<span class="built_in">break</span> or <span class="built_in">return</span> result</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> array[mid] &lt; target :</span><br><span class="line">		left = mid + 1</span><br><span class="line">	<span class="keyword">else</span> right = mid -1</span><br><span class="line">	</span><br><span class="line">	</span><br><span class="line"><span class="comment"># 递归形式</span></span><br><span class="line">func DAC(left,right,target,arr[]) int &#123;</span><br><span class="line">		<span class="keyword">if</span> (left &gt; right)&#123;</span><br><span class="line">			<span class="built_in">return</span> -1</span><br><span class="line">		&#125;</span><br><span class="line">		var mid = left + (right-left)/2</span><br><span class="line">		<span class="keyword">if</span> arr[mid] == target &#123;</span><br><span class="line">			<span class="built_in">return</span> mid</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (target &gt; arr[mid])&#123;</span><br><span class="line">			<span class="built_in">return</span> right = DAC(mid+1,right,target,arr)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (target &lt; arr[mid])&#123;</span><br><span class="line">			<span class="built_in">return</span> left = DAC(left,mid-1,target,arr)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">return</span> -1 </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 循环形式</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%AE%97%E6%B3%95/" rel="tag"># 算法</a>
+              <a href="/tags/%E6%A8%A1%E7%89%88/" rel="tag"># 模版</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/10/21/mysql/" rel="prev" title="mysql">
+      <i class="fa fa-chevron-left"></i> mysql
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/" rel="next" title="分布式协议">
+      分布式协议 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%80%92%E5%BD%92%E6%A8%A1%E7%89%88"><span class="nav-number">1.</span> <span class="nav-text">递归模版</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%81%8D%E5%8E%86%E6%A8%A1%E7%89%88"><span class="nav-number">2.</span> <span class="nav-text">遍历模版</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B1%E5%BA%A6%E9%81%8D%E5%8E%86"><span class="nav-number">2.1.</span> <span class="nav-text">深度遍历</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B9%BF%E5%BA%A6%E9%81%8D%E5%8E%86"><span class="nav-number">2.2.</span> <span class="nav-text">广度遍历</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#M%E7%9A%84N%E6%AC%A1%E6%96%B9"><span class="nav-number">2.3.</span> <span class="nav-text">M的N次方</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9F%A5%E6%89%BE%E6%A8%A1%E7%89%88"><span class="nav-number">3.</span> <span class="nav-text">查找模版</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E5%88%86%E6%A8%A1%E7%89%88"><span class="nav-number">3.1.</span> <span class="nav-text">二分模版</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="donscoco"
+      src="/images/Misaka.jpg">
+  <p class="site-author-name" itemprop="name">donscoco</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/donscoco" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@foxmail.com" title="E-Mail → mailto:donscoco@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/yourname" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;yourname" rel="noopener" target="_blank"><i class="fab fa-weibo fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@gmail.com" title="Google → mailto:donscoco@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/donscoco" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/don.chen.12" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;don.chen.12" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">donscoco</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

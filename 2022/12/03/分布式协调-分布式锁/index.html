@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"donscoco.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="概念本质：占一个坑，这个坑可以是任何事物。例如我用一个本地文件作为占一个坑的标志，用一个内存地址作为占一坑的标志 锁的演进V1. 最简易的：内存地址（变量） V2. 磁盘文件：判断一个文件是否存在 V3. 判断锁都是由使用者去检查，使用者去解锁，万一使用者异常退出没有解锁怎么办？优化下，给这个锁角色设置成协调者，由锁来通知使用者锁的使用情况。这样可以避免，占有锁的人宕机导致没有解锁的情况，锁的占有">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式协调-分布式锁">
+<meta property="og:url" content="https://donscoco.github.io/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/index.html">
+<meta property="og:site_name" content="donscoco">
+<meta property="og:description" content="概念本质：占一个坑，这个坑可以是任何事物。例如我用一个本地文件作为占一个坑的标志，用一个内存地址作为占一坑的标志 锁的演进V1. 最简易的：内存地址（变量） V2. 磁盘文件：判断一个文件是否存在 V3. 判断锁都是由使用者去检查，使用者去解锁，万一使用者异常退出没有解锁怎么办？优化下，给这个锁角色设置成协调者，由锁来通知使用者锁的使用情况。这样可以避免，占有锁的人宕机导致没有解锁的情况，锁的占有">
+<meta property="og:locale">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/zk-distribute-lock.drawio.png">
+<meta property="article:published_time" content="2022-12-02T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-04T10:46:18.668Z">
+<meta property="article:author" content="donscoco">
+<meta property="article:tag" content="学习笔记">
+<meta property="article:tag" content="分布式">
+<meta property="article:tag" content="分布式协调">
+<meta property="article:tag" content="分布式锁">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://donscoco.github.io/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/zk-distribute-lock.drawio.png">
+
+<link rel="canonical" href="https://donscoco.github.io/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>分布式协调-分布式锁 | donscoco</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">donscoco</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Misaka.jpg">
+      <meta itemprop="name" content="donscoco">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="donscoco">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式协调-分布式锁
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2022-12-03 00:00:00" itemprop="dateCreated datePublished" datetime="2022-12-03T00:00:00+08:00">2022-12-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-01-04 18:46:18" itemprop="dateModified" datetime="2023-01-04T18:46:18+08:00">2023-01-04</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%8D%8F%E8%B0%83/" itemprop="url" rel="index"><span itemprop="name">协调</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h1><p>本质：占一个坑，这个坑可以是任何事物。例如我用一个本地文件作为占一个坑的标志，用一个内存地址作为占一坑的标志</p>
+<h1 id="锁的演进"><a href="#锁的演进" class="headerlink" title="锁的演进"></a>锁的演进</h1><p>V1. 最简易的：内存地址（变量）</p>
+<p>V2. 磁盘文件：判断一个文件是否存在</p>
+<p>V3. 判断锁都是由使用者去检查，使用者去解锁，万一使用者异常退出没有解锁怎么办？优化下，给这个锁角色设置成协调者，由锁来通知使用者锁的使用情况。这样可以避免，占有锁的人宕机导致没有解锁的情况，锁的占有情况由协调者检查连接情况来判断。</p>
+<p>V4. 之前的版本都是在单机下，为了在集群中共享这个锁，将这个”锁的机制”独立出来，让不同机器上的进程都能通过这个”锁”来协调。</p>
+<p>v5. v4存在单节点问题。所以我们可以加上一些一致性共识，把这个协调者给做成分布式：为了方便。我们这里直接就使用zookeeper。</p>
+<p>分布式锁其实就是，控制分布式系统不同进程共同访问共享资源的一种锁的实现。如果不同的系统或同一个系统的不同主机之间共享了某个临界资源，往往需要互斥来防止彼此干扰，以保证一致性。</p>
+<h1 id="各种锁的原理（简易版）"><a href="#各种锁的原理（简易版）" class="headerlink" title="各种锁的原理（简易版）"></a>各种锁的原理（简易版）</h1><p>ps：这里做的只是一个小demo，帮助理解上面说锁的概念的本质，并非实际可以使用的锁！</p>
+<h2 id="以内存作为锁（v1）"><a href="#以内存作为锁（v1）" class="headerlink" title="以内存作为锁（v1）"></a>以内存作为锁（v1）</h2><p>以某内存作为锁，那简单做就是使用某个变量的值作为锁。注意保证原子性。如下</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;sync/atomic&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">学习笔记：</span></span><br><span class="line"><span class="comment">探究锁的本质，v1，使用一块内存来作为&quot;占坑标志&quot;</span></span><br><span class="line"><span class="comment">模拟抢占内存标志</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> lock <span class="type">int32</span></span><br><span class="line"><span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> count1 <span class="type">int</span></span><br><span class="line">	<span class="keyword">var</span> count2 <span class="type">int</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">1000</span>; j++ &#123;</span><br><span class="line">				count1++</span><br><span class="line">			&#125;</span><br><span class="line">			wg.Done()</span><br><span class="line">		&#125;()</span><br><span class="line"></span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">1000</span>; j++ &#123;</span><br><span class="line">				myLock()</span><br><span class="line">				count2++</span><br><span class="line">				myUnlock()</span><br><span class="line">			&#125;</span><br><span class="line">			wg.Done()</span><br><span class="line">		&#125;()</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">	fmt.Printf(<span class="string">&quot;count without lock %d\ncount with lock %d\n&quot;</span>, count1, count2)</span><br><span class="line">	<span class="comment">//myLock()</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">myLock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;lock, <span class="number">0</span>, <span class="number">1</span>) &#123; <span class="comment">// 抢占成功</span></span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 自旋/阻塞等待唤醒，这里模拟一下就直接使用sleep</span></span><br><span class="line">		time.Sleep(<span class="number">10</span> * time.Millisecond)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">myUnlock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;lock, <span class="number">1</span>, <span class="number">0</span>) &#123; <span class="comment">//</span></span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">panic</span>(<span class="string">&quot;err&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="以磁盘块作为锁（v2）"><a href="#以磁盘块作为锁（v2）" class="headerlink" title="以磁盘块作为锁（v2）"></a>以磁盘块作为锁（v2）</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">学习笔记：</span></span><br><span class="line"><span class="comment">探究锁的本质，v2，使用一个磁盘块来作为&quot;占坑标志&quot;</span></span><br><span class="line"><span class="comment">模拟抢占持久化介质标志</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> lock <span class="type">string</span> = <span class="string">&quot;/tmp/lock&quot;</span></span><br><span class="line"><span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> count1 <span class="type">int</span></span><br><span class="line">	<span class="keyword">var</span> count2 <span class="type">int</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">10000</span>; j++ &#123;</span><br><span class="line">				count1++</span><br><span class="line">			&#125;</span><br><span class="line">			wg.Done()</span><br><span class="line">		&#125;()</span><br><span class="line">		<span class="comment">//</span></span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			myLock()</span><br><span class="line">			<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="number">10000</span>; j++ &#123;</span><br><span class="line">				count2++</span><br><span class="line">			&#125;</span><br><span class="line">			myUnlock()</span><br><span class="line">			wg.Done()</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;count without lock %d\ncount with lock %d&quot;</span>, count1, count2)</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 实际不可能使用一个文件来作为锁，这里只是模拟一个锁持久化，模拟抢占磁盘块，因为linux是通过文件系统来管理磁盘块的。所以我们这里直接操作文件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">myLock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		_, err := os.OpenFile(lock, os.O_RDWR|os.O_CREATE|os.O_EXCL|os.O_APPEND, <span class="number">0666</span>)</span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 模拟自旋和阻塞</span></span><br><span class="line">		time.Sleep(<span class="number">100</span> * time.Millisecond)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">myUnlock</span><span class="params">()</span></span> &#123;</span><br><span class="line">	os.Remove(lock)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="以协调者进程作为锁（v3）"><a href="#以协调者进程作为锁（v3）" class="headerlink" title="以协调者进程作为锁（v3）"></a>以协调者进程作为锁（v3）</h2><p>进程和进程之间通信的方式有很多种</p>
+<ul>
+<li>管道</li>
+<li>消息队列</li>
+<li>信号</li>
+<li>共享内存</li>
+<li>套接字</li>
+</ul>
+<p>这里我们使用套接字</p>
+<p>ps : 这个只是一个demo ，实际还可以做成由协调者通知其他需要获取锁的进程，但是要注意避免羊群效应。</p>
+<p>协调者服务器</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line">	<span class="string">&quot;net&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;os/signal&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Server <span class="keyword">struct</span> &#123;</span><br><span class="line">	LockPath <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">struct</span>&#123;&#125; <span class="comment">// 表示占用的锁，连接断开就删除</span></span><br><span class="line"></span><br><span class="line">	Addr     <span class="type">string</span></span><br><span class="line">	listener net.Listener</span><br><span class="line"></span><br><span class="line">	context context.Context</span><br><span class="line">	cancel  context.CancelFunc</span><br><span class="line"></span><br><span class="line">	mu sync.Mutex</span><br><span class="line">	wg sync.WaitGroup</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> Start() &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		s.wg.Add(<span class="number">1</span>)</span><br><span class="line">		s.LockServe()</span><br><span class="line">		s.wg.Done()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// debug 查看</span></span><br><span class="line">	<span class="comment">//go func() &#123;</span></span><br><span class="line">	<span class="comment">//	for &#123;</span></span><br><span class="line">	<span class="comment">//		s.mu.Lock()</span></span><br><span class="line">	<span class="comment">//		_, exit := s.LockPath[&quot;/lock&quot;]</span></span><br><span class="line">	<span class="comment">//		fmt.Println(exit)</span></span><br><span class="line">	<span class="comment">//		s.mu.Unlock()</span></span><br><span class="line">	<span class="comment">//		time.Sleep(500 * time.Millisecond)</span></span><br><span class="line">	<span class="comment">//	&#125;</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">//&#125;()</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> Stop() &#123;</span><br><span class="line">	s.cancel()</span><br><span class="line">	s.listener.Close()</span><br><span class="line">	s.wg.Wait()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> LockServe() <span class="type">error</span> &#123;</span><br><span class="line">	s.LockPath = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line">	listener, err := net.Listen(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;127.0.0.1:8080&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	s.listener = listener</span><br><span class="line">	<span class="keyword">var</span> tempDelay time.Duration</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		conn, err := listener.Accept()</span><br><span class="line">		<span class="comment">// 直接仿照 net/http 包的异常处理</span></span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-s.context.Done():</span><br><span class="line">				log.Println(err)</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> ne, ok := err.(net.Error); ok &amp;&amp; ne.Temporary() &#123;</span><br><span class="line">				<span class="keyword">if</span> tempDelay == <span class="number">0</span> &#123;</span><br><span class="line">					tempDelay = <span class="number">5</span> * time.Millisecond</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">					tempDelay *= <span class="number">2</span></span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">if</span> max := <span class="number">1</span> * time.Second; tempDelay &gt; max &#123;</span><br><span class="line">					tempDelay = max</span><br><span class="line">				&#125;</span><br><span class="line">				time.Sleep(tempDelay)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">go</span> s.serve(conn)</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	srv := Server&#123;&#125;</span><br><span class="line">	srv.context, srv.cancel = context.WithCancel(context.TODO())</span><br><span class="line"></span><br><span class="line">	srv.Start()</span><br><span class="line">	sig := <span class="built_in">make</span>(<span class="keyword">chan</span> os.Signal)</span><br><span class="line">	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)</span><br><span class="line">	&lt;-sig</span><br><span class="line">	srv.Stop()</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> serve(conn net.Conn) &#123;</span><br><span class="line">	s.wg.Add(<span class="number">1</span>)</span><br><span class="line">	s.a(conn)</span><br><span class="line">	s.wg.Done()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> a(conn net.Conn) &#123;</span><br><span class="line"></span><br><span class="line">	log.Println(<span class="string">&quot;new connection&quot;</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">defer</span> conn.Close()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 针对当前连接做发送和接受操作</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		buf := <span class="built_in">make</span>([]<span class="type">byte</span>, <span class="number">16</span>, <span class="number">16</span>)</span><br><span class="line">		n, err := conn.Read(buf[:])</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot;read from conn failed, err:%v\n&quot;</span>, err)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		recv := <span class="type">string</span>(buf[:n])</span><br><span class="line">		fmt.Printf(<span class="string">&quot;收到的数据：%v\n&quot;</span>, recv)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> resp []<span class="type">byte</span></span><br><span class="line"></span><br><span class="line">		s.mu.Lock()</span><br><span class="line">		_, ok := s.LockPath[recv]</span><br><span class="line">		<span class="keyword">if</span> ok &#123;</span><br><span class="line">			resp = []<span class="type">byte</span>(<span class="string">&quot;f&quot;</span>)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			resp = []<span class="type">byte</span>(<span class="string">&quot;s&quot;</span>)</span><br><span class="line">			s.LockPath[recv] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">			<span class="keyword">defer</span> s.clean(recv)</span><br><span class="line">		&#125;</span><br><span class="line">		s.mu.Unlock()</span><br><span class="line"></span><br><span class="line">		time.Sleep(<span class="number">2</span> * time.Second) <span class="comment">// 为了方便观察</span></span><br><span class="line"></span><br><span class="line">		log.Println(<span class="string">&quot;回复的数据：&quot;</span>, <span class="type">string</span>(resp))</span><br><span class="line">		_, err = conn.Write(resp)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot;write from conn failed, err:%v\n&quot;</span>, err)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span></span> clean(p <span class="type">string</span>) &#123;</span><br><span class="line">	s.mu.Lock()</span><br><span class="line">	<span class="built_in">delete</span>(s.LockPath, p)</span><br><span class="line">	s.mu.Unlock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>客户端</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line">	<span class="string">&quot;net&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;os/signal&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">学习笔记：</span></span><br><span class="line"><span class="comment">探究锁的本质，v3，使用socket连接情况来作为判断使用锁的进程存活标志，这里直接使用内存（map+mutext）做为占坑标志</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">实验例子中可以调大sleep的时间间隔，可以看到，协程都是同时启动的，但是每次获得锁只有一个。</span></span><br><span class="line"><span class="comment">分成多个进程去启动使用，结果也是一样的，只有一个进程能获得锁</span></span><br><span class="line"><span class="comment">可以观察到</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(num <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">			log.Printf(<span class="string">&quot;goroutine %d start\n&quot;</span>, num)</span><br><span class="line">			conn, err := myLock(<span class="string">&quot;/lock&quot;</span>)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				fmt.Print(err)</span><br><span class="line">			&#125;</span><br><span class="line">			log.Printf(<span class="string">&quot;goroutine %d hold lock\n&quot;</span>, num)</span><br><span class="line">			time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">			log.Printf(<span class="string">&quot;goroutine %d release lock\n&quot;</span>, num)</span><br><span class="line">			myUnlock(conn)</span><br><span class="line">		&#125;(i)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sig := <span class="built_in">make</span>(<span class="keyword">chan</span> os.Signal)</span><br><span class="line">	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)</span><br><span class="line">	&lt;-sig</span><br><span class="line"></span><br><span class="line">	<span class="comment">//conn, err := myLock(&quot;/lock&quot;)</span></span><br><span class="line">	<span class="comment">//if err != nil &#123;</span></span><br><span class="line">	<span class="comment">//	fmt.Print(err)</span></span><br><span class="line">	<span class="comment">//&#125;</span></span><br><span class="line">	<span class="comment">//log.Println(conn)</span></span><br><span class="line">	<span class="comment">//myUnlock(conn)</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">myLock</span><span class="params">(path <span class="type">string</span>)</span></span> (conn net.Conn, err <span class="type">error</span>) &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> recv <span class="type">string</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">//log.Println(&quot;debug client dial&quot;)</span></span><br><span class="line">		conn, err := net.Dial(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;127.0.0.1:8080&quot;</span>)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">//log.Println(&quot;debug client write&quot;)</span></span><br><span class="line">		nn, err := conn.Write([]<span class="type">byte</span>(path))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> nn &lt;= <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//log.Println(&quot;debug client write char num&quot;, nn)</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> buf = <span class="built_in">make</span>([]<span class="type">byte</span>, <span class="number">16</span>, <span class="number">16</span>)</span><br><span class="line">		err = conn.SetDeadline(time.Now().Add(<span class="number">10</span> * time.Second))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">&quot;setdedline&quot;</span>, err)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">//log.Println(&quot;debug client read&quot;)</span></span><br><span class="line">		n, err := conn.Read(buf)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> n &gt; <span class="number">0</span> &#123;</span><br><span class="line">			recv = <span class="type">string</span>(buf[:n])</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">//log.Println(&quot;debug client read &quot;, recv)</span></span><br><span class="line">		<span class="keyword">if</span> recv == <span class="string">&quot;s&quot;</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> conn, <span class="literal">nil</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			conn.Close()</span><br><span class="line">			time.Sleep(<span class="number">1000</span> * time.Millisecond)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">myUnlock</span><span class="params">(conn net.Conn)</span></span> &#123;</span><br><span class="line">	conn.Close()</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="以协调者服务器作为锁（v4）"><a href="#以协调者服务器作为锁（v4）" class="headerlink" title="以协调者服务器作为锁（v4）"></a>以协调者服务器作为锁（v4）</h2><p>和v3 一样，只是把锁这个协调者和使用锁的进程分开部署</p>
+<h2 id="以协调者的集群作为锁（v5）"><a href="#以协调者的集群作为锁（v5）" class="headerlink" title="以协调者的集群作为锁（v5）"></a>以协调者的集群作为锁（v5）</h2><p>加上协调者，其实就是把协调者服务进程改成集群，至于集群的设计方式，有多种，只要满足分布式共识即可。例如可以使用raft 去实现。</p>
+<h1 id="各种分布式锁的实现"><a href="#各种分布式锁的实现" class="headerlink" title="各种分布式锁的实现"></a>各种分布式锁的实现</h1><p>实现分布式锁有多种风格</p>
+<ul>
+<li>一种是通过原子性，来保证只有一个人抢占到锁。例如 redis分布式锁</li>
+<li>一种是通过串行化，来保证操作的顺序性。例如 zookeeper分布式锁</li>
+</ul>
+<h1 id="redis分布式锁"><a href="#redis分布式锁" class="headerlink" title="redis分布式锁"></a>redis分布式锁</h1><p>代码：<a target="_blank" rel="noopener" href="https://github.com/donscoco/goboot/blob/main/util/lock/redis/lock.go">https://github.com/donscoco/goboot/blob/main/util/lock/redis/lock.go</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> redis</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;github.com/go-redis/redis&quot;</span></span><br><span class="line">	<span class="string">&quot;goboot/config&quot;</span></span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 初始化创建redis</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> DefaultRedisLocker *RedisLocker</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> RedisLocker <span class="keyword">struct</span> &#123;</span><br><span class="line">	Username <span class="type">string</span></span><br><span class="line">	Password <span class="type">string</span></span><br><span class="line">	Addrs    []<span class="type">string</span></span><br><span class="line">	Database <span class="type">int</span></span><br><span class="line"></span><br><span class="line">	isCluster <span class="type">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// todo 根据 redis.ClusterOptions 的配置项添加</span></span><br><span class="line">	DialTimeout        <span class="type">int</span></span><br><span class="line">	ReadTimeout        <span class="type">int</span></span><br><span class="line">	WriteTimeout       <span class="type">int</span></span><br><span class="line">	MaxRetries         <span class="type">int</span></span><br><span class="line">	PoolSize           <span class="type">int</span></span><br><span class="line">	IdleTimeout        <span class="type">int</span></span><br><span class="line">	IdleCheckFrequency <span class="type">int</span></span><br><span class="line"></span><br><span class="line">	clusterClient *redis.ClusterClient</span><br><span class="line">	sigleClient   *redis.Client</span><br><span class="line"></span><br><span class="line">	Expire   <span class="type">int</span></span><br><span class="line">	LockName <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Init</span><span class="params">(conf *config.Config, path <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">	DefaultRedisLocker, err = CreateRedisLocker(conf, path, <span class="string">&quot;defaultlock&quot;</span>, <span class="number">160</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateRedisLocker</span><span class="params">(config *config.Config, path <span class="type">string</span>, LockName <span class="type">string</span>, Expire <span class="type">int</span>)</span></span> (l *RedisLocker, err <span class="type">error</span>) &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 读取配置</span></span><br><span class="line">	l = <span class="built_in">new</span>(RedisLocker)</span><br><span class="line">	err = config.GetByScan(path, l)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(l.Addrs) &gt; <span class="number">1</span> &#123;</span><br><span class="line">		l.isCluster = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">// 创建client</span></span><br><span class="line">		opt := &amp;redis.ClusterOptions&#123;</span><br><span class="line">			Addrs:        l.Addrs,</span><br><span class="line">			Password:     l.Password,</span><br><span class="line">			DialTimeout:  time.Second * time.Duration(l.DialTimeout),</span><br><span class="line">			ReadTimeout:  time.Second * time.Duration(l.ReadTimeout),</span><br><span class="line">			WriteTimeout: time.Second * time.Duration(l.WriteTimeout),</span><br><span class="line">			MaxRetries:   l.MaxRetries,</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(l.Password) &gt; <span class="number">0</span> &#123;</span><br><span class="line">			opt.Password = l.Password</span><br><span class="line">		&#125;</span><br><span class="line">		l.clusterClient = redis.NewClusterClient(opt)</span><br><span class="line">		cmd := l.clusterClient.Ping()</span><br><span class="line">		<span class="keyword">if</span> cmd.Val() != <span class="string">&quot;PONG&quot;</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, cmd.Err()</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> <span class="built_in">len</span>(l.Addrs) == <span class="number">1</span> &#123; <span class="comment">// 单节点</span></span><br><span class="line">		l.isCluster = <span class="literal">false</span></span><br><span class="line">		opt := &amp;redis.Options&#123;</span><br><span class="line">			Addr: l.Addrs[<span class="number">0</span>],</span><br><span class="line">			<span class="comment">//Password:     p.Password,</span></span><br><span class="line">			DB:           l.Database,</span><br><span class="line">			DialTimeout:  time.Second * time.Duration(l.DialTimeout),</span><br><span class="line">			ReadTimeout:  time.Second * time.Duration(l.ReadTimeout),</span><br><span class="line">			WriteTimeout: time.Second * time.Duration(l.WriteTimeout),</span><br><span class="line">			MaxRetries:   l.MaxRetries,</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(l.Password) &gt; <span class="number">0</span> &#123;</span><br><span class="line">			opt.Password = l.Password</span><br><span class="line">		&#125;</span><br><span class="line">		l.sigleClient = redis.NewClient(opt)</span><br><span class="line"></span><br><span class="line">		cmd := l.sigleClient.Ping()</span><br><span class="line">		<span class="keyword">if</span> cmd.Val() != <span class="string">&quot;PONG&quot;</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, cmd.Err()</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// empty addr</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	l.Expire = Expire</span><br><span class="line">	l.LockName = LockName</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// trylock</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *RedisLocker)</span></span> TryLock() (isLocked <span class="type">bool</span>, err <span class="type">error</span>) &#123;</span><br><span class="line">	currentTime := time.Now().Unix()</span><br><span class="line">	<span class="keyword">var</span> bcmd *redis.BoolCmd</span><br><span class="line">	<span class="keyword">if</span> l.isCluster &#123;</span><br><span class="line">		bcmd = l.clusterClient.SetNX(l.LockName, currentTime, time.Duration(l.Expire)*time.Second)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		bcmd = l.sigleClient.SetNX(l.LockName, currentTime, time.Duration(l.Expire)*time.Second)</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> bcmd.Val(), bcmd.Err()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// unlock</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *RedisLocker)</span></span> UnLock() (err <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> l.isCluster &#123;</span><br><span class="line">		<span class="keyword">return</span> l.clusterClient.Del(l.LockName).Err()</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> l.sigleClient.Del(l.LockName).Err()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+<h1 id="zookeeper分布式锁"><a href="#zookeeper分布式锁" class="headerlink" title="zookeeper分布式锁"></a>zookeeper分布式锁</h1><ul>
+<li>zk本身是强一致性，非常试合作为分布式锁</li>
+<li>实现简单，且有现成的监听通知机制，就避免不断轮询锁的状态</li>
+<li>临时节点的特性「会话中断，节点删除」，使得锁的释放更简单</li>
+<li>使用watcher能很好地避免羊群效应</li>
+</ul>
+<img src="/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/zk-distribute-lock.drawio.png" class="">
+
+
+
+<p>流程如下：</p>
+<p>加锁：</p>
+<ul>
+<li>创建临时有序节点 a</li>
+<li>取出所有子节点<ul>
+<li>找到最小 b</li>
+<li>找到比当前的临时有序节点小的最大值 c</li>
+</ul>
+</li>
+<li>如果a是最小的节点，则表示获取到锁</li>
+<li>如果a不是最小的节点，则watch，为了避免羊群效应，watch b节点<br>  &#x2F;&#x2F; 此处如果有延时，上一个节点 在此刻被删除，自己最小却无法实现监听</li>
+<li>&#x2F;&#x2F; 需要再次判断下上一个节点还存不存在<ul>
+<li>存在，没有获得锁，等待获得锁通知</li>
+<li>不存在，说明上一个已经退出了。那么我就是最小的了。直接获得锁，返回，ps：这里有可能最小的没有退出，但是我的上一个节点已经宕机退出了。所以这里最好还是再次获得所有节点，确认下自己是不是最小的。</li>
+</ul>
+</li>
+</ul>
+<p>解锁：</p>
+<ul>
+<li>直接delete 节点</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;github.com/samuel/go-zookeeper/zk&quot;</span></span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;os/signal&quot;</span></span><br><span class="line">	<span class="string">&quot;strconv&quot;</span></span><br><span class="line">	<span class="string">&quot;strings&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	c, _, err := zk.Connect([]<span class="type">string</span>&#123;</span><br><span class="line">		<span class="string">&quot;192.168.2.128:2181&quot;</span>,</span><br><span class="line">		<span class="string">&quot;192.168.2.128:2182&quot;</span>,</span><br><span class="line">		<span class="string">&quot;192.168.2.128:2183&quot;</span>&#125;, time.Second) <span class="comment">//*10)</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	locker, err := NewLocker(c, <span class="string">&quot;/lock&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 模拟10个协程/进程/服务器 请求分布式锁</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(n <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">for</span> &#123;</span><br><span class="line">				locker.Lock()</span><br><span class="line">				log.Printf(<span class="string">&quot;进程%d 执行业务逻辑&quot;</span>, n)</span><br><span class="line">				time.Sleep(<span class="number">3</span> * time.Second)</span><br><span class="line">				locker.Unlock()</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;(i)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sig := <span class="built_in">make</span>(<span class="keyword">chan</span> os.Signal)</span><br><span class="line">	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)</span><br><span class="line">	&lt;-sig</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Locker <span class="keyword">struct</span> &#123;</span><br><span class="line">	Conn   *zk.Conn</span><br><span class="line">	path   <span class="type">string</span></span><br><span class="line">	prefix <span class="type">string</span></span><br><span class="line"></span><br><span class="line">	lockPath <span class="type">string</span></span><br><span class="line">	seq      <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewLocker</span><span class="params">(c *zk.Conn, rootpath <span class="type">string</span>)</span></span> (locker *Locker, err <span class="type">error</span>) &#123;</span><br><span class="line">	locker = <span class="built_in">new</span>(Locker)</span><br><span class="line">	locker.Conn = c</span><br><span class="line">	locker.path = rootpath</span><br><span class="line">	locker.prefix = fmt.Sprintf(<span class="string">&quot;%s/lock-&quot;</span>, locker.path)</span><br><span class="line"></span><br><span class="line">	isExists, _, err := locker.Conn.Exists(locker.path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> isExists &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123; <span class="comment">// 创建父节点</span></span><br><span class="line">		_, err := locker.Conn.Create(locker.path, <span class="literal">nil</span>, <span class="number">0</span>, zk.WorldACL(zk.PermAll))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Locker)</span></span> Lock() (err <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="comment">// 创建临时有序节点</span></span><br><span class="line">	<span class="comment">// 取出所有子节点</span></span><br><span class="line">	<span class="comment">// 判断最小的， //如果是最小的节点，则表示获取到锁</span></span><br><span class="line">	<span class="comment">// 最小表示获得锁，返回</span></span><br><span class="line">	<span class="comment">// 不是最小的，注册监听</span></span><br><span class="line">	<span class="comment">//此处如果有延时，上一个节点 在此刻被删除，自己最小却无法实现监听</span></span><br><span class="line">	<span class="comment">// 需要再次判断下上一个节点还存不存在</span></span><br><span class="line">	<span class="comment">// 存在，没有获得锁，等待获得锁通知</span></span><br><span class="line">	<span class="comment">// 不存在，说明上一个已经退出了。那么我就是最小的了。直接获得锁，返回，ps：这里有可能最小的没有退出，但是我的上一个节点已经退出了。所以这里最好还是再次获得所有节点，确认下自己是不是最小的。</span></span><br><span class="line"></span><br><span class="line">	path, err := l.Conn.CreateProtectedEphemeralSequential(l.prefix, <span class="literal">nil</span>, zk.WorldACL(zk.PermAll))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	seq, err := parseSeq(path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		children, _, err := l.Conn.Children(l.path)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		lowestSeq := seq</span><br><span class="line">		prevSeq := <span class="number">-1</span></span><br><span class="line">		prevSeqPath := <span class="string">&quot;&quot;</span></span><br><span class="line">		<span class="keyword">for</span> _, p := <span class="keyword">range</span> children &#123; <span class="comment">// 遍历目标：1。找到最小的，2。找到比自己的集合中最大的那个</span></span><br><span class="line">			s, err := parseSeq(p)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> s &lt; lowestSeq &#123;</span><br><span class="line">				lowestSeq = s</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> s &lt; seq &amp;&amp; s &gt; prevSeq &#123;</span><br><span class="line">				prevSeq = s</span><br><span class="line">				prevSeqPath = p</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> seq == lowestSeq &#123; <span class="comment">// 没有找到比自己还小的，说明自己是队首，直接获得锁</span></span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 没有获得锁，watch等待通知获得锁，为了避免羊群效应，watch自己前面的那个人</span></span><br><span class="line">		_, _, ch, err := l.Conn.GetW(l.path + <span class="string">&quot;/&quot;</span> + prevSeqPath)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err != zk.ErrNoNode &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err == zk.ErrNoNode &#123; <span class="comment">// 这里可能出现要watch那个节点退出了。所以要再次看下所有孩子节点的最小</span></span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		ev := &lt;-ch</span><br><span class="line">		<span class="keyword">if</span> ev.Err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> ev.Err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	l.seq = seq</span><br><span class="line">	l.lockPath = path</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Locker)</span></span> Unlock() (err <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> l.lockPath == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> zk.ErrNotLocked</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := l.Conn.Delete(l.lockPath, <span class="number">-1</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	l.lockPath = <span class="string">&quot;&quot;</span></span><br><span class="line">	l.seq = <span class="number">0</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">parseSeq</span><span class="params">(path <span class="type">string</span>)</span></span> (<span class="type">int</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	parts := strings.Split(path, <span class="string">&quot;-&quot;</span>)</span><br><span class="line">	<span class="keyword">return</span> strconv.Atoi(parts[<span class="built_in">len</span>(parts)<span class="number">-1</span>])</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="tag"># 学习笔记</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag"># 分布式</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83/" rel="tag"># 分布式协调</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="tag"># 分布式锁</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/" rel="prev" title="分布式协议">
+      <i class="fa fa-chevron-left"></i> 分布式协议
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%A6%82%E5%BF%B5"><span class="nav-number">1.</span> <span class="nav-text">概念</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%94%81%E7%9A%84%E6%BC%94%E8%BF%9B"><span class="nav-number">2.</span> <span class="nav-text">锁的演进</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%90%84%E7%A7%8D%E9%94%81%E7%9A%84%E5%8E%9F%E7%90%86%EF%BC%88%E7%AE%80%E6%98%93%E7%89%88%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">各种锁的原理（简易版）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%86%85%E5%AD%98%E4%BD%9C%E4%B8%BA%E9%94%81%EF%BC%88v1%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">以内存作为锁（v1）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E7%A3%81%E7%9B%98%E5%9D%97%E4%BD%9C%E4%B8%BA%E9%94%81%EF%BC%88v2%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">以磁盘块作为锁（v2）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%8D%8F%E8%B0%83%E8%80%85%E8%BF%9B%E7%A8%8B%E4%BD%9C%E4%B8%BA%E9%94%81%EF%BC%88v3%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">以协调者进程作为锁（v3）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%8D%8F%E8%B0%83%E8%80%85%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%BD%9C%E4%B8%BA%E9%94%81%EF%BC%88v4%EF%BC%89"><span class="nav-number">3.4.</span> <span class="nav-text">以协调者服务器作为锁（v4）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%8D%8F%E8%B0%83%E8%80%85%E7%9A%84%E9%9B%86%E7%BE%A4%E4%BD%9C%E4%B8%BA%E9%94%81%EF%BC%88v5%EF%BC%89"><span class="nav-number">3.5.</span> <span class="nav-text">以协调者的集群作为锁（v5）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%90%84%E7%A7%8D%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">4.</span> <span class="nav-text">各种分布式锁的实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81"><span class="nav-number">5.</span> <span class="nav-text">redis分布式锁</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#zookeeper%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81"><span class="nav-number">6.</span> <span class="nav-text">zookeeper分布式锁</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="donscoco"
+      src="/images/Misaka.jpg">
+  <p class="site-author-name" itemprop="name">donscoco</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/donscoco" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@foxmail.com" title="E-Mail → mailto:donscoco@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/yourname" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;yourname" rel="noopener" target="_blank"><i class="fab fa-weibo fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@gmail.com" title="Google → mailto:donscoco@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/donscoco" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/don.chen.12" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;don.chen.12" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">donscoco</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

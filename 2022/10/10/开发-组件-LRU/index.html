@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"donscoco.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="LRU算法&#x2F;&#x2F; 说一下LRU算法是什么（本质） LRU本质LRU是Least Recently Used的缩写，即最近最少使用。在一个指定大小的集合中，当添加新的元素并且这个指定大小的集合放不下时，需要淘汰一个元素腾出位置，而淘汰的策略就是看谁是最早被访问的。 LRU的本质是在 [ 集合 ] 中维护一个信息，这个信息就是”各个元素的访问顺序”。然后根据这个”访问顺序”来决定淘汰">
+<meta property="og:type" content="article">
+<meta property="og:title" content="开发-组件-LRU">
+<meta property="og:url" content="https://donscoco.github.io/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/index.html">
+<meta property="og:site_name" content="donscoco">
+<meta property="og:description" content="LRU算法&#x2F;&#x2F; 说一下LRU算法是什么（本质） LRU本质LRU是Least Recently Used的缩写，即最近最少使用。在一个指定大小的集合中，当添加新的元素并且这个指定大小的集合放不下时，需要淘汰一个元素腾出位置，而淘汰的策略就是看谁是最早被访问的。 LRU的本质是在 [ 集合 ] 中维护一个信息，这个信息就是”各个元素的访问顺序”。然后根据这个”访问顺序”来决定淘汰">
+<meta property="og:locale">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/LRU-design.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/mysql-%E7%BC%93%E5%86%B2%E9%A1%B5LRU%E9%93%BE%E8%A1%A8a.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/LFU-design.drawio.png">
+<meta property="article:published_time" content="2022-10-09T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-01T07:50:15.636Z">
+<meta property="article:author" content="donscoco">
+<meta property="article:tag" content="学习笔记">
+<meta property="article:tag" content="LRU">
+<meta property="article:tag" content="LFU">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://donscoco.github.io/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/LRU-design.drawio.png">
+
+<link rel="canonical" href="https://donscoco.github.io/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>开发-组件-LRU | donscoco</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">donscoco</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Misaka.jpg">
+      <meta itemprop="name" content="donscoco">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="donscoco">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          开发-组件-LRU
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2022-10-10 00:00:00" itemprop="dateCreated datePublished" datetime="2022-10-10T00:00:00+08:00">2022-10-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-01-01 15:50:15" itemprop="dateModified" datetime="2023-01-01T15:50:15+08:00">2023-01-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AE%97%E6%B3%95/LRU/" itemprop="url" rel="index"><span itemprop="name">LRU</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="LRU算法"><a href="#LRU算法" class="headerlink" title="LRU算法"></a>LRU算法</h1><p>&#x2F;&#x2F; 说一下LRU算法是什么（本质）</p>
+<h2 id="LRU本质"><a href="#LRU本质" class="headerlink" title="LRU本质"></a>LRU本质</h2><p>LRU是Least Recently Used的缩写，即最近最少使用。在一个指定大小的集合中，当添加新的元素并且这个指定大小的集合放不下时，需要淘汰一个元素腾出位置，而淘汰的策略就是看谁是最早被访问的。</p>
+<p>LRU的本质是在 [ 集合 ] 中维护一个信息，这个信息就是”各个元素的访问顺序”。然后根据这个”访问顺序”来决定淘汰策略</p>
+<h2 id="LRU的设计"><a href="#LRU的设计" class="headerlink" title="LRU的设计"></a>LRU的设计</h2><p>因为LRU的本质是维护一个  “访问顺序”，所以我们可以有多种方式去实现这个 “访问信息” </p>
+<ol>
+<li>使用线性结构来维护 这个 “访问顺序” ——这个线性结构的顺序就代表了”访问顺序”</li>
+<li>使用数值来维护这个”访问顺序”——这个数值的大小就代表了”访问顺序”</li>
+</ol>
+<p>由上面的两种设计思路，我们可以得到以下两种设计</p>
+<ol>
+<li>链表+map</li>
+<li>数组+一个能维护数值顺序的数据结构（可以是数组）</li>
+</ol>
+<p>解释下两种设计的</p>
+<ol>
+<li><p>链表+map，本身链表就保存了”访问顺序”和”元素空间”，map只是一个为了加快访问速度的辅佐的数据结构。相当于索引</p>
+</li>
+<li><p>数组+(维护数值顺序的数据结构)，数组本身不维护”访问顺序”信息，只是作为存放元素的”元素空间”。而维护”访问顺序”的信息交给第二个数据结构，这个数据结构可以是数组，可以是堆，只要这个数据结构能维护数值的顺序，提供最早访问的元素是哪个的信息。例如在”页面置换算法中的LRU”，考虑到内存紧张，所以不会使用链表+map，而是使用两个数组，一个作为存放页面的空间，一个作为统计页面使用数值。</p>
+</li>
+</ol>
+<h2 id="LRU代码实现"><a href="#LRU代码实现" class="headerlink" title="LRU代码实现"></a>LRU代码实现</h2><p>这里我们用代码实现下业务上传统的LRU实现方式，实现LRU算法需要使用到两个数据结构，map+链表</p>
+<p>1.首先，因为LRU需要有一个淘汰策略，这个淘汰策略是根据访问顺序来决定的，所以，我们需要保存和维护这个”访问顺序”的信息，所以我们使用 [ 链表 ] 或者 [ 数组 ] 这种 <code>线性结构</code>的数据结构来保存。</p>
+<p>2.然后，因为这个”访问顺序”是经常变动的，所以在链表和数组中，我们选择使用链表。</p>
+<p>3.再者，考虑到访问缓存的耗时，不可能直接去遍历链表。所以我们需要给链表加上一个索引，让我们快速定位到要访问那个节点上。所以，我们需要加上一个 [ map ] 的数据结构。用来快速定位。</p>
+<p>4.最后，在添加元素，访问元素，和删除元素时，维护好map和链表即可。</p>
+<img src="/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/LRU-design.drawio.png" class="">
+
+<p>github代码：<a target="_blank" rel="noopener" href="https://github.com/donscoco/goboot/blob/main/container/lrucache/lrucache.go">https://github.com/donscoco/goboot/blob/main/container/lrucache/lrucache.go</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> lrucache</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;container/list&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line">	<span class="string">&quot;strings&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> LRUCache <span class="keyword">struct</span> &#123;</span><br><span class="line">	elementList *list.List</span><br><span class="line">	elementMap  <span class="keyword">map</span>[<span class="type">string</span>]*list.Element</span><br><span class="line">	size        <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Entry <span class="keyword">struct</span> &#123; <span class="comment">// 用于移除的时候快速找到key</span></span><br><span class="line">	key <span class="type">string</span></span><br><span class="line">	val <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(size <span class="type">int</span>)</span></span> *LRUCache &#123;</span><br><span class="line">	<span class="keyword">if</span> size &lt; <span class="number">1</span> &#123;</span><br><span class="line">		err := fmt.Errorf(<span class="string">&quot;invalid lrucache size&quot;</span>)</span><br><span class="line">		<span class="comment">// todo</span></span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;LRUCache&#123;</span><br><span class="line">		elementList: list.New(),</span><br><span class="line">		elementMap:  <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]*list.Element, size),</span><br><span class="line">		size:        size,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LRUCache)</span></span> Set(key <span class="type">string</span>, val <span class="keyword">interface</span>&#123;&#125;) &#123;</span><br><span class="line">	elem, ok := l.elementMap[key]</span><br><span class="line">	<span class="keyword">if</span> ok &#123; <span class="comment">// 存在,移动到头部</span></span><br><span class="line">		elem.Value.(*Entry).val = val</span><br><span class="line">		l.elementList.MoveToFront(elem)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123; <span class="comment">// 不存在,创建,加入,移除尾部</span></span><br><span class="line">		entry := &amp;Entry&#123;</span><br><span class="line">			key: key,</span><br><span class="line">			val: val,</span><br><span class="line">		&#125;</span><br><span class="line">		elem := l.elementList.PushFront(entry)</span><br><span class="line">		l.elementMap[key] = elem</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> l.size &lt; l.elementList.Len() &#123;</span><br><span class="line">			rmElem := l.elementList.Back()</span><br><span class="line">			<span class="built_in">delete</span>(l.elementMap, rmElem.Value.(*Entry).key)</span><br><span class="line">			l.elementList.Remove(rmElem)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LRUCache)</span></span> Get(key <span class="type">string</span>) (val <span class="keyword">interface</span>&#123;&#125;, ok <span class="type">bool</span>) &#123;</span><br><span class="line">	elem, ok := l.elementMap[key]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, ok</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 存在就是进行了一次访问，直接移动到队头</span></span><br><span class="line">	l.elementList.MoveToFront(elem)</span><br><span class="line">	kv := elem.Value.(*Entry)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> kv.val, <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LRUCache)</span></span> Len() <span class="type">int</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> l.elementList.Len()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 测试使用的。查看 list 的顺序</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *LRUCache)</span></span> ForTest() &#123;</span><br><span class="line"></span><br><span class="line">	tmp := list.New()</span><br><span class="line">	<span class="keyword">var</span> printCont []<span class="type">string</span></span><br><span class="line">	length := l.elementList.Len()</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; length; i++ &#123;</span><br><span class="line">		elem := l.elementList.Front()</span><br><span class="line">		tmp.PushBack(elem.Value.(*Entry))</span><br><span class="line">		printCont = <span class="built_in">append</span>(printCont, elem.Value.(*Entry).key)</span><br><span class="line">		l.elementList.Remove(elem)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 恢复</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; length; i++ &#123;</span><br><span class="line">		elem := tmp.Front()</span><br><span class="line">		l.elementList.PushBack(elem.Value.(*Entry))</span><br><span class="line">		tmp.Remove(elem)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(printCont) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		log.Println(strings.Join(printCont, <span class="string">&quot;,&quot;</span>))</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="近似LRU"><a href="#近似LRU" class="headerlink" title="近似LRU"></a>近似LRU</h1><p>在一些对 [ 内存 ] 和 [ 处理耗时 ] 比较紧张的系统中。会使用一种叫近似LRU的算法。例如redis会使用近似LRU。</p>
+<h2 id="什么是近似LRU"><a href="#什么是近似LRU" class="headerlink" title="什么是近似LRU"></a>什么是近似LRU</h2><p>近似LRU的本质依然是在集合中淘汰掉元素来为新元素腾出位置，但是这个淘汰的方式没有那么严格，并非一定要是最早那个元素，比较早的元素也可以，只要不是最近访问过的元素。</p>
+<p>按照这个设计思路，可以随机取出元素去淘汰，只不过这个随机出来的元素要进行判断，不能把最近的给淘汰了。所以说，元素本身是需要维护一个可以区分最近元素还是最远元素的信息。例如可以加个最近被访问的字段等。</p>
+<h2 id="近似LRU的流程"><a href="#近似LRU的流程" class="headerlink" title="近似LRU的流程"></a>近似LRU的流程</h2><p>我们以redis的近似LRU为例，说一下近似LRU的流程</p>
+<p>Redis的key的底层结构是 redisObject，redisObject 中 lru:LRU_BITS 字段用于记录该key最近一次被访问时的Redis时钟 server.lruclock（Redis在处理数据时，都会调用lookupKey方法用于更新该key的时钟）。</p>
+<p>Redis 给 每个key增加了一个额外的小字段，这个字段长度是24bit，也就是最后一次被访问的时间戳，当redis执行写操作时，发现内存超出maxmemory，就会执行换一次LRU淘汰算法。随机采样x个key，然后淘汰掉最旧的key，如果淘汰后内存还是超出maxmemory，那就继续随机采样淘汰，直到内存低于maxmemory。至于x取值是多少，看 maxmemory-policy的配置。</p>
+<p>redis的对象数据结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">/* The actual Redis Object */</span><br><span class="line"><span class="comment">#define LRU_BITS 24</span></span><br><span class="line"><span class="comment">#define LRU_CLOCK_MAX ((1&lt;&lt;LRU_BITS)-1) /* Max value of obj-&gt;lru */</span></span><br><span class="line"><span class="comment">#define LRU_CLOCK_RESOLUTION 1000 /* LRU clock resolution in ms */</span></span><br><span class="line">typedef struct redisObject &#123;</span><br><span class="line">    unsigned <span class="built_in">type</span>:4;</span><br><span class="line">    unsigned encoding:4;</span><br><span class="line">    unsigned lru:LRU_BITS; /* lru time (relative to server.lruclock) */</span><br><span class="line">    int refcount;</span><br><span class="line">    void *ptr;</span><br><span class="line">&#125; robj;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>redis 清理内存代码见  <code>int freeMemoryIfNeeded(void)</code>  函数</p>
+<h2 id="为什么使用近似LRU"><a href="#为什么使用近似LRU" class="headerlink" title="为什么使用近似LRU"></a>为什么使用近似LRU</h2><p>原生LRU算法需要 双向链表 来管理数据，需要额外内存；<br>数据访问时涉及数据移动，有性能损耗；</p>
+<h1 id="年代LRU"><a href="#年代LRU" class="headerlink" title="年代LRU"></a>年代LRU</h1><p>一些系统在使用LRU的时候会预读一些数据进入集合，但是，如果这些预读页如果一直不会被访问到，就会出现一个很奇怪的问题，不会被访问的预读页却占用了 LRU 链表前排的位置，而末尾淘汰的页，可能是频繁访问的页，这样就大大降低了缓存命中率。</p>
+<p>为了避免这样的问题，将 LRU 划分区域：</p>
+<p>一个区域放的是预读进来的数据，一个区域放的是实际访问到的。如图：</p>
+<img src="/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/mysql-%E7%BC%93%E5%86%B2%E9%A1%B5LRU%E9%93%BE%E8%A1%A8a.drawio.png" class="">
+
+
+
+
+
+<h1 id="LFU"><a href="#LFU" class="headerlink" title="LFU"></a>LFU</h1><p>LFU（Least Frequently Used） ，又叫最近最少使用算法。</p>
+<p>如果一个数据在最近一段时间很少被访问到，那么可以认为在将来它被访问的可能性也很小。因此，当空间满时，最小频率访问的数据最先被淘汰。</p>
+<p>LFU的本质：集合需要淘汰一个元素来为新元素腾出位置，而淘汰哪个元素，需要集合本身维护一个”访问次数”的信息，然后还要维护这个”访问次数”的信息排序或者最小信息。</p>
+<ul>
+<li><p>需要维护”访问次数”的信息</p>
+</li>
+<li><p>维护”访问次数最小”的信息</p>
+</li>
+</ul>
+<p>这个”访问次数”的信息最直接的就是可以使用一个数值来保存。然后对这个数值进行排序。所以我们继续使用一个 数组或者链表的数据结构来保存元素，然后再加上一个数据结构来保存这个排序信息。自然就可以得出多种设计思路：</p>
+<ol>
+<li>可以用两个数组，一个保存元素，一个保存每个元素对应的访问频次，需要替换的时候遍历访问找到频次最少的，时间复杂度：O(n)</li>
+<li>可以使用一个链表，节点保存好访问频次，每次改动都将这个节点移动到对应的访问次数的位置上。时间复杂度：O(n)</li>
+<li>使用一个链表，一个map，链表用来保存数据信息，map用来优化，快速定位。时间复杂度：O(1)</li>
+</ol>
+<p>设计</p>
+<p>首先，我们需要”保存元素”信息，所以我们需要一个数据结构，这里我们先用数组。为了维护”访问频次”信息，所以我们可以在每个节点上加一个字段用来表示这个节点的访问频次。</p>
+<p>然后，处于时间复杂度考虑，我们不能每次都去遍历整个集合找最小值，所以，我们需要给这个集合加上一个索引，所以我们需要加上一个map的数据结构，这个map的key保存的是频次，val是对应的节点，还有一个值用来保存最小频次，后续访问节点时维护这个min和map。</p>
+<p>再者，加上 [ 频次的索引 ] 之后因为会出现频次相同的节点，所以每个节点需要单独成为一个集合，一个相同频次的集合，所以，我们可以把相同频次的节点集合挂在 [ 频次索引 ] 的map下。</p>
+<p>最后，因为每个节点被访问后，频次改变，都会移动到对应频次下的集合，所以经常会改动，所以把数组的数据结构换成链表的数据结构。然后因为换成链表，相同频次下的节点去访问的时候还是会遍历这个相同频次的集合，所以，需要再加上一个索引，用来快速定位到每个节点。</p>
+<p>整个思路过程如图：</p>
+<img src="/2022/10/10/%E5%BC%80%E5%8F%91-%E7%BB%84%E4%BB%B6-LRU/LFU-design.drawio.png" class="">
+
+<p>代码：<a target="_blank" rel="noopener" href="https://github.com/donscoco/goboot/blob/main/container/lfucache/lfucache.go">https://github.com/donscoco/goboot/blob/main/container/lfucache/lfucache.go</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br></pre></td><td class="code"><pre><span class="line">package lfucache</span><br><span class="line"></span><br><span class="line">import (</span><br><span class="line">	<span class="string">&quot;container/list&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="built_in">type</span> LFUCache struct &#123;</span><br><span class="line">	elementMap map[string]*list.Element //用来快速定位 key-value</span><br><span class="line">	//entryList *list.List</span><br><span class="line">	frequency map[int]*list.List // 将相同频次的entry放一起，用来快速定位各个频次的集合</span><br><span class="line"></span><br><span class="line">	capacity int</span><br><span class="line">	min      int</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">type</span> Entry struct &#123;</span><br><span class="line">	key       string</span><br><span class="line">	val       interface&#123;&#125;</span><br><span class="line">	frequency int</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func New(capacity int) (l *LFUCache) &#123;</span><br><span class="line">	<span class="keyword">if</span> capacity &lt; 1 &#123;</span><br><span class="line">		err := fmt.Errorf(<span class="string">&quot;invalid capacity&quot;</span>)</span><br><span class="line">		// todo</span><br><span class="line">		log.Fatal(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	l = &amp;LFUCache&#123;</span><br><span class="line">		elementMap: make(map[string]*list.Element),</span><br><span class="line">		frequency:  make(map[int]*list.List),</span><br><span class="line">		capacity:   capacity,</span><br><span class="line">		min:        0,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">return</span> l</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (l *LFUCache) Get(key string) (val interface&#123;&#125;, ok bool) &#123;</span><br><span class="line">	// todo check</span><br><span class="line">	<span class="keyword">if</span> l.capacity == 0 &#123;</span><br><span class="line">		<span class="built_in">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	elem, ok := l.elementMap[key]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="built_in">return</span> nil, ok</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	// 移出旧的频次队列</span><br><span class="line">	entry := elem.Value.(*Entry)</span><br><span class="line">	oldList := l.frequency[entry.frequency] //elementMap中能拿到这里肯定能拿到。不用判空</span><br><span class="line">	oldList.Remove(elem)</span><br><span class="line"></span><br><span class="line">	entry.frequency = entry.frequency + 1</span><br><span class="line"></span><br><span class="line">	// 放到新的频次队列</span><br><span class="line">	_, ok = l.frequency[entry.frequency]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		l.frequency[entry.frequency] = list.New()</span><br><span class="line">	&#125;</span><br><span class="line">	newList := l.frequency[entry.frequency]</span><br><span class="line">	l.elementMap[entry.key] = newList.PushFront(entry)</span><br><span class="line"></span><br><span class="line">	// 更新最小频次</span><br><span class="line">	<span class="keyword">if</span> l.frequency[l.min].Len() == 0 &amp;&amp; l.min == entry.frequency-1 &#123;</span><br><span class="line">		l.min = entry.frequency</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="built_in">return</span> entry.val, <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">func (l *LFUCache) Set(key string, val interface&#123;&#125;) &#123;</span><br><span class="line">	// todo check</span><br><span class="line">	<span class="keyword">if</span> l.capacity == 0 &#123;</span><br><span class="line">		<span class="built_in">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	elem, ok := l.elementMap[key]</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line"></span><br><span class="line">		// 移出队列，频次+1，加入新队列</span><br><span class="line">		entry := elem.Value.(*Entry)</span><br><span class="line">		oldList := l.frequency[entry.frequency] // 能在 elementMap中找到，这里就一定能找到</span><br><span class="line">		//if oldList == nil &#123;</span><br><span class="line">		oldList.Remove(elem)</span><br><span class="line"></span><br><span class="line">		entry.val = val</span><br><span class="line">		entry.frequency = entry.frequency + 1</span><br><span class="line"></span><br><span class="line">		_, ok := l.frequency[entry.frequency] // 新的 频次不一定初始化了。要判断下</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			l.frequency[entry.frequency] = list.New()</span><br><span class="line">		&#125;</span><br><span class="line">		newList := l.frequency[entry.frequency]</span><br><span class="line">		//newList.PushFront(entry)</span><br><span class="line">		l.elementMap[entry.key] = newList.PushFront(entry)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> l.frequency[l.min].Len() == 0 &amp;&amp; l.min == entry.frequency-1 &#123;</span><br><span class="line">			l.min = entry.frequency</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="built_in">return</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> l.capacity == len(l.elementMap) &#123; // 满了就清除一个最小的频次</span><br><span class="line">			minList := l.frequency[l.min]</span><br><span class="line">			rmElem := minList.Back() // 我们插入是front，为了公平性，从back开始移出</span><br><span class="line">			minList.Remove(rmElem)</span><br><span class="line">			delete(l.elementMap, rmElem.Value.(*Entry).key)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		entry := &amp;Entry&#123;</span><br><span class="line">			key:       key,</span><br><span class="line">			val:       val,</span><br><span class="line">			frequency: 1,</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		_, ok := l.frequency[entry.frequency]</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			l.frequency[entry.frequency] = list.New()</span><br><span class="line">		&#125;</span><br><span class="line">		newList := l.frequency[entry.frequency]</span><br><span class="line">		//newList.PushFront(entry)</span><br><span class="line">		l.elementMap[entry.key] = newList.PushFront(entry)</span><br><span class="line"></span><br><span class="line">		l.min = 1 // 新节点加入频次肯定是1</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">func (l *LFUCache) Del(key string) &#123;</span><br><span class="line">	// todo check</span><br><span class="line">	<span class="keyword">if</span> l.capacity == 0 &#123;</span><br><span class="line">		<span class="built_in">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	elem, ok := l.elementMap[key]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="built_in">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	entry := elem.Value.(*Entry)</span><br><span class="line">	oldList := l.frequency[entry.frequency] // 能在 elementMap中找到，这里就一定能找到</span><br><span class="line">	//if oldList == nil &#123;</span><br><span class="line">	oldList.Remove(elem)</span><br><span class="line">	delete(l.elementMap, entry.key)</span><br><span class="line"></span><br><span class="line">	// 更新最小频次,最小的已经remove了。找到第二小的 O(n)</span><br><span class="line">	<span class="keyword">if</span> l.frequency[l.min].Len() == 0 &#123;</span><br><span class="line">		l.min = 0</span><br><span class="line">		<span class="keyword">for</span> _, e := range l.elementMap &#123;</span><br><span class="line">			entry := e.Value.(*Entry)</span><br><span class="line">			<span class="keyword">if</span> entry.frequency &lt; l.min || l.min == 0 &#123;</span><br><span class="line">				l.min = entry.frequency</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//func (l *LFUCache) <span class="function"><span class="title">ForTest</span></span>() &#123;</span><br><span class="line">//	<span class="keyword">for</span> _, elem := range l.elementMap &#123;</span><br><span class="line">//		entry := elem.Value.(*Entry)</span><br><span class="line">//		fmt.Printf(<span class="string">&quot;k:%s,v:%+v,f:%d\n&quot;</span>, entry.key, entry.val, entry.frequency)</span><br><span class="line">//	&#125;</span><br><span class="line">//&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="tag"># 学习笔记</a>
+              <a href="/tags/LRU/" rel="tag"># LRU</a>
+              <a href="/tags/LFU/" rel="tag"># LFU</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/10/07/%E5%88%86%E5%B8%83%E5%BC%8F%E8%B0%83%E7%94%A8-%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" rel="prev" title="服务发现">
+      <i class="fa fa-chevron-left"></i> 服务发现
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/10/14/https%E5%8A%A0%E5%AF%86/" rel="next" title="https">
+      https <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#LRU%E7%AE%97%E6%B3%95"><span class="nav-number">1.</span> <span class="nav-text">LRU算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#LRU%E6%9C%AC%E8%B4%A8"><span class="nav-number">1.1.</span> <span class="nav-text">LRU本质</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LRU%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.2.</span> <span class="nav-text">LRU的设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LRU%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.3.</span> <span class="nav-text">LRU代码实现</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BF%91%E4%BC%BCLRU"><span class="nav-number">2.</span> <span class="nav-text">近似LRU</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%91%E4%BC%BCLRU"><span class="nav-number">2.1.</span> <span class="nav-text">什么是近似LRU</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%91%E4%BC%BCLRU%E7%9A%84%E6%B5%81%E7%A8%8B"><span class="nav-number">2.2.</span> <span class="nav-text">近似LRU的流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BD%BF%E7%94%A8%E8%BF%91%E4%BC%BCLRU"><span class="nav-number">2.3.</span> <span class="nav-text">为什么使用近似LRU</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B9%B4%E4%BB%A3LRU"><span class="nav-number">3.</span> <span class="nav-text">年代LRU</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#LFU"><span class="nav-number">4.</span> <span class="nav-text">LFU</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="donscoco"
+      src="/images/Misaka.jpg">
+  <p class="site-author-name" itemprop="name">donscoco</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/donscoco" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@foxmail.com" title="E-Mail → mailto:donscoco@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/yourname" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;yourname" rel="noopener" target="_blank"><i class="fab fa-weibo fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@gmail.com" title="Google → mailto:donscoco@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/donscoco" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/don.chen.12" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;don.chen.12" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">donscoco</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

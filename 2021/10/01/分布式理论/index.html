@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"donscoco.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="ACID事务的基本特性  原子性（Atomicity）  一致性（Consistency）  隔离性（Isolation）  持久性（Durability）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式理论">
+<meta property="og:url" content="https://donscoco.github.io/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/index.html">
+<meta property="og:site_name" content="donscoco">
+<meta property="og:description" content="ACID事务的基本特性  原子性（Atomicity）  一致性（Consistency）  隔离性（Isolation）  持久性（Durability）">
+<meta property="og:locale">
+<meta property="og:image" content="https://donscoco.github.io/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/distributed-Availability.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/distributed-Partition-Tolerance.drawio.png">
+<meta property="article:published_time" content="2021-09-30T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-08T18:30:41.671Z">
+<meta property="article:author" content="donscoco">
+<meta property="article:tag" content="学习笔记">
+<meta property="article:tag" content="分布式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://donscoco.github.io/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/distributed-Availability.drawio.png">
+
+<link rel="canonical" href="https://donscoco.github.io/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>分布式理论 | donscoco</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">donscoco</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Misaka.jpg">
+      <meta itemprop="name" content="donscoco">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="donscoco">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式理论
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2021-10-01 00:00:00" itemprop="dateCreated datePublished" datetime="2021-10-01T00:00:00+08:00">2021-10-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-01-09 02:30:41" itemprop="dateModified" datetime="2023-01-09T02:30:41+08:00">2023-01-09</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/%E7%90%86%E8%AE%BA/" itemprop="url" rel="index"><span itemprop="name">理论</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="ACID"><a href="#ACID" class="headerlink" title="ACID"></a>ACID</h1><p>事务的基本特性</p>
+<ul>
+<li><strong>原子性（Atomicity）</strong> </li>
+<li><strong>一致性（Consistency）</strong> </li>
+<li><strong>隔离性（Isolation）</strong> </li>
+<li><strong>持久性（Durability）</strong></li>
+</ul>
+<span id="more"></span>
+
+
+
+
+
+<h1 id="CAP"><a href="#CAP" class="headerlink" title="CAP"></a>CAP</h1><p>CAP理论</p>
+<ul>
+<li>一致性(Consistency) </li>
+<li>可用性(Availability) </li>
+<li>分区容错性(Partition Tolerance)</li>
+</ul>
+<h2 id="一致性"><a href="#一致性" class="headerlink" title="一致性"></a>一致性</h2><p>例子：client 在 主节点写入数据x&#x3D;3，在从节点读取数据x&#x3D;3。从节点和主节点对client提供的服务数据是一份一致的数据。在主从未达到一致前，是不会对client的查询提供服务的。</p>
+<p>作用：一致性说的是客户端的每次读操作，不管访问哪个节点，要么读到的都是同一份最新的数据，要么读取失败。</p>
+<p>一般实现做法：写入主数据库后，在向从数据库同步期间要将从数据库锁定，待同步完成后再释放锁，以免在新数据写入成功后，向从数据库查询到旧的数据。</p>
+
+
+<p>分布式一致性的特点：</p>
+<p>client写入会有延迟，client读取会有延迟。因为对于client来说，集群是一个整体，各个节点需要达到数据一致才能对client提供服务。</p>
+<p><strong>一致性强调 的不是数据完整，而是各节点间的数据一致。</strong>在客户端看来，集群和单机在数据一致性上是一样的。一旦数据更新完成并成功返回客户端后，那么分布式系统中所有节点在同一时间的数据完全一致。</p>
+<h2 id="可用性"><a href="#可用性" class="headerlink" title="可用性"></a>可用性</h2><p>例子：client 在向集群写入和读取的时候必须是有响应的。（集群的成员可以有宕机的，但是集群这个整体必须有响应给client）</p>
+<p>作用：集群是作为一个整体向外提供服务，集群的成员可以有宕机的，但是集群这个整体必须有响应给到client，不能有集群不可用的情况。</p>
+<p>一般实现做法：写入主数据库后，主数据库同步数据给从节点。不对client的操作进行干涉</p>
+<img src="/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/distributed-Availability.drawio.png" class="">
+
+<p>分布式可用性特点：所有请求都有响应，且不会出现响应超时或响应错误。整个集群只要不挂，就一定会有响应。client读取到的数据可能是旧数据。</p>
+<p>可用性强调的是各个节点构成的整个集群的可用行。在客户端看来，集群和单机在可用行上是一样的。只要集群不挂或者说集群处于健康状态，就可以向集群发起请求并获得服务 </p>
+<h2 id="分区容错性"><a href="#分区容错性" class="headerlink" title="分区容错性"></a>分区容错性</h2><p>例子：client 向集群写入 x&#x3D;3 ，当集群x&#x3D;3的leader宕机后，集群的其他节点依然保存着部分其他数据，client可以查y&#x3D;1，x的久数据x&#x3D;2</p>
+<p>作用：集群其一个结点挂掉不影响另一个结点对外提供服务。</p>
+<p>一般实现：给数据库添加复制节点和将leader数据库进行分区（例如三主三从）</p>
+<img src="/2021/10/01/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA/distributed-Partition-Tolerance.drawio.png" class="">
+
+<p>分区容错性特点：集群高可用。</p>
+<p>这样的系统不能达成一致性，需要给出数据冲突，给出数据冲突就需要维护数据版本。</p>
+<p>CAP定律说的是在一个分布式计算机系统中，一致性，可用性和分区容错性这三种保证无法同时得到满足，最多满足两个。</p>
+<p>一般来说 分区容错性是分布式系统必备的能力，所以分布式数据库就是在满足分区容错性的基础上，一致性和可用性两者选其一。</p>
+<h2 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h2><p>CA：CA 模型，在分布式系统中不存在。因为舍弃 P，意味着舍弃分布式系统，就比如单机版 关系型数据库 MySQL</p>
+<p>CP：CP 模型，采用 CP 模型的分布式系统，一旦因为消息丢失、延迟过高发生了网络分区， 就影响用户的体验和业务的可用性。因为为了防止数据不一致，集群将拒绝新数据的写</p>
+<p>入，典型的应用是 ZooKeeper，Etcd 和 HBase。</p>
+<p>AP：AP 模型，采用 AP 模型的分布式系统，实现了服务的高可用。用户访问系统的时候，都 能得到响应数据，不会出现响应错误，但当出现分区故障时，相同的读操作，访问不同 的节点，得到响应数据可能不一样。典型应用就比如 Cassandra 和 DynamoDB。</p>
+<h1 id="BASE"><a href="#BASE" class="headerlink" title="BASE"></a>BASE</h1><p>分布式BASE理论 是由eBay架构师提出的。BASE是对CAP中一致性和可用性权衡的结果，其核心思想是即使无法做到强一致性，但每个应用都可以根据自身业务特点，采用适当的方式来达到最终一致性（Eventual consistency）</p>
+<p>BASE是<strong>Basically Available(基本可用）</strong>、<strong>Soft state(软状态）</strong>和<strong>Eventually consistent(最终一致性）</strong>三个短语的简写。</p>
+<p><code>ACID</code>是传统数据库常用的设计理念，<code>追求强一致性</code>模型。</p>
+<p><code>BASE</code>支持的是大型分布式系统，提出通过<code>牺牲强一致性</code>获得<code>高可用性</code>。</p>
+<p>BASE理论本质就是AP</p>
+<h2 id="Basically-Available（基本可用）"><a href="#Basically-Available（基本可用）" class="headerlink" title="Basically Available（基本可用）"></a>Basically Available（基本可用）</h2><p>一般来说，对于client 请求量大的情况，可以对请求进行一些降级等。让集群集群服务依然可以提供服务。达到可用例如常见的：</p>
+<ul>
+<li>限流&#x2F;服务熔断（client的部分请求是满足不了的。直接拒绝）</li>
+<li>延迟响应（client的请求需要等待数据一致才能服务，这个服务请求延迟可能由原来的毫秒提升到要数秒）</li>
+<li>服务降级（client的请求得到的不是实时数据）</li>
+<li>弹性扩容（增加集群的分区节点。这样在达到数据最终一致性会降低延迟。每个节点处理数量降低，能为更多client请求提供服务）</li>
+</ul>
+<h2 id="Soft-state（软状态）"><a href="#Soft-state（软状态）" class="headerlink" title="Soft state（软状态）"></a>Soft state（软状态）</h2><p>允许系统中的数据存在中间状态，并认为该状态不影响系统的整体可用性，即允许系统在多个不同节点的数据副本存在数据延时。</p>
+<h2 id="Eventually-consistent（最终一致性）"><a href="#Eventually-consistent（最终一致性）" class="headerlink" title="Eventually consistent（最终一致性）"></a>Eventually consistent（最终一致性）</h2><p>上面说软状态，然后不可能一直是软状态，必须有个时间期限。在期限过后，应当保证所有副本保持数据一致性，从而达到数据的最终一致性。这个时间期限取决于网络延时、系统负载、数据复制方案设计等等因素。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="tag"># 学习笔记</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag"># 分布式</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/02/%E8%AF%BB%E5%86%99%E9%94%81%E2%80%94%E2%80%94golang%E4%BE%8B%E5%AD%90/" rel="prev" title="读写锁">
+      <i class="fa fa-chevron-left"></i> 读写锁
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/01/02/%E8%AF%BB%E4%B9%A6%E8%AE%A1%E5%88%92/" rel="next" title="读书计划">
+      读书计划 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ACID"><span class="nav-number">1.</span> <span class="nav-text">ACID</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#CAP"><span class="nav-number">2.</span> <span class="nav-text">CAP</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number">2.1.</span> <span class="nav-text">一致性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AF%E7%94%A8%E6%80%A7"><span class="nav-number">2.2.</span> <span class="nav-text">可用性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%8C%BA%E5%AE%B9%E9%94%99%E6%80%A7"><span class="nav-number">2.3.</span> <span class="nav-text">分区容错性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%8B%E5%AD%90"><span class="nav-number">2.4.</span> <span class="nav-text">例子</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#BASE"><span class="nav-number">3.</span> <span class="nav-text">BASE</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Basically-Available%EF%BC%88%E5%9F%BA%E6%9C%AC%E5%8F%AF%E7%94%A8%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">Basically Available（基本可用）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Soft-state%EF%BC%88%E8%BD%AF%E7%8A%B6%E6%80%81%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">Soft state（软状态）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Eventually-consistent%EF%BC%88%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4%E6%80%A7%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">Eventually consistent（最终一致性）</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="donscoco"
+      src="/images/Misaka.jpg">
+  <p class="site-author-name" itemprop="name">donscoco</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/donscoco" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@foxmail.com" title="E-Mail → mailto:donscoco@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/yourname" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;yourname" rel="noopener" target="_blank"><i class="fab fa-weibo fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:donscoco@gmail.com" title="Google → mailto:donscoco@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/donscoco" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;donscoco" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/don.chen.12" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;don.chen.12" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">donscoco</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
