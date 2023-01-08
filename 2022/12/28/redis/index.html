@@ -25,40 +25,40 @@
   <meta name="description" content="常用redis命令手册：http:&#x2F;&#x2F;doc.redisfans.com&#x2F; 基本数据结构和应用Redis 提供存储的5种基本数据结构：string，list，set，map，zset 下面是redis常见的应用场景： 缓存 可以string直接缓存整个对象，例如json，或者自定义的分隔符等 可以hash缓存字段经常变动的对象。例如购物车这种。 计数 因为 Redis 处理命令是单线程，所以执行命">
 <meta property="og:type" content="article">
 <meta property="og:title" content="redis">
-<meta property="og:url" content="https://donscoco.github.io/2022/10/05/redis/index.html">
+<meta property="og:url" content="https://donscoco.github.io/2022/12/28/redis/index.html">
 <meta property="og:site_name" content="donscoco">
 <meta property="og:description" content="常用redis命令手册：http:&#x2F;&#x2F;doc.redisfans.com&#x2F; 基本数据结构和应用Redis 提供存储的5种基本数据结构：string，list，set，map，zset 下面是redis常见的应用场景： 缓存 可以string直接缓存整个对象，例如json，或者自定义的分隔符等 可以hash缓存字段经常变动的对象。例如购物车这种。 计数 因为 Redis 处理命令是单线程，所以执行命">
 <meta property="og:locale">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-bit-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-hyperloglog-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-geohash-wiki.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-lock.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-scan-slot-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-scan-add.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-scan-2.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-scan.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-net-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/epoll-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-netio-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/copy-on-write-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-rdb-aof.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-dict-2.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/alloc-1.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/alloc-2.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-linklist.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-hash-1.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-intset-1.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-intset-2.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/10/05/redis/redis-quicklist.png">
-<meta property="article:published_time" content="2022-10-04T16:00:00.000Z">
-<meta property="article:modified_time" content="2023-01-08T20:02:33.510Z">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-bit-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-hyperloglog-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-geohash-wiki.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-lock.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-scan-slot-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-scan-add.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-scan-2.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-scan.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-net-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/epoll-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-netio-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/copy-on-write-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-rdb-aof.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-dict-2.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/alloc-1.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/alloc-2.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-linklist.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-hash-1.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-intset-1.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-intset-2.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/28/redis/redis-quicklist.png">
+<meta property="article:published_time" content="2022-12-27T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-08T22:01:57.572Z">
 <meta property="article:author" content="donscoco">
 <meta property="article:tag" content="数据库">
 <meta property="article:tag" content="database">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://donscoco.github.io/2022/10/05/redis/redis-bit-1.drawio.png">
+<meta name="twitter:image" content="https://donscoco.github.io/2022/12/28/redis/redis-bit-1.drawio.png">
 
-<link rel="canonical" href="https://donscoco.github.io/2022/10/05/redis/">
+<link rel="canonical" href="https://donscoco.github.io/2022/12/28/redis/">
 
 
 <script id="page-configurations">
@@ -214,7 +214,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
-    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/10/05/redis/">
+    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/12/28/redis/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/Misaka.jpg">
@@ -237,14 +237,14 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2022-10-05 00:00:00" itemprop="dateCreated datePublished" datetime="2022-10-05T00:00:00+08:00">2022-10-05</time>
+              <time title="Created: 2022-12-28 00:00:00" itemprop="dateCreated datePublished" datetime="2022-12-28T00:00:00+08:00">2022-12-28</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2023-01-09 04:02:33" itemprop="dateModified" datetime="2023-01-09T04:02:33+08:00">2023-01-09</time>
+                <time title="Modified: 2023-01-09 06:01:57" itemprop="dateModified" datetime="2023-01-09T06:01:57+08:00">2023-01-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -340,7 +340,7 @@
 
 <h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>位图并不是独立数据结构，他本质还是原来的string数据结构。对位图的操作其实就是对string的[]byte 数组操作。</p>
 <p>如图：</p>
-<img src="/2022/10/05/redis/redis-bit-1.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-bit-1.drawio.png" class="">
 
 
 
@@ -358,7 +358,7 @@
 
 
 <h2 id="原理-1"><a href="#原理-1" class="headerlink" title="原理"></a>原理</h2><p>给定一个整数，每次记录下低位连续零位的最大长度K，当给定的整数数量足够多时，根据K值可以估算出整数数量N。</p>
-<img src="/2022/10/05/redis/redis-hyperloglog-1.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-hyperloglog-1.drawio.png" class="">
 
 <p>&#x2F;&#x2F; todo 数学证明</p>
 <p>关键在于我们对于相同的数值可以不管。</p>
@@ -369,7 +369,7 @@
 <p>GEO 底层本身并没有设计新的底层数据结构，而是直接使用了 zset 集合类型。通过geohash算法，实现二维的经纬度数据转换到一维的数据。然后对二维地图做区间划分，然后对区间进行编码。转换后的一维数据在这进行编码排序后的区间中找到自己的区间，zset存的就是区间的编码值，按照编码值作为分数进行排序。</p>
 <p>当要寻找对应坐标附近的点时，在这个一维的线上获取附近的点即可。</p>
 <p>如图转化过程</p>
-<img src="/2022/10/05/redis/redis-geohash-wiki.png" class="">
+<img src="/2022/12/28/redis/redis-geohash-wiki.png" class="">
 
 
 
@@ -429,7 +429,7 @@
 <p>redis实现的分布式锁一般是第一种。利用 setnx 和 redis 单线程的特性，保证多个人setnx只有一个人会设置成功。</p>
 <p>对于 2.8版本后的redis，set 支持设置 nx 和 expire 特性，所以实现分布式锁非常简单，抢占的时候直接set，退出的时候直接删除即可。</p>
 <p>对于2.8版本前的redis，如下图：</p>
-<img src="/2022/10/05/redis/redis-lock.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-lock.drawio.png" class="">
 
 
 
@@ -531,7 +531,7 @@
 <p>命令中的count 1000 不是限定返回数量，而是限定服务器单词遍历的字典槽位数量。</p>
 <p>scan指令返回的游标就是数组的位置索引，count表示要遍历的槽位，返回的结果可能多可能少，是因为有些槽位可能是空的。每次scan 都会将 对应数量的槽位上的链表元素进行匹配后过滤返回给客户端。</p>
 <p>如图：</p>
-<img src="/2022/10/05/redis/redis-scan-slot-1.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-scan-slot-1.drawio.png" class="">
 
 
 
@@ -539,7 +539,7 @@
 
 <h2 id="高位进位加法"><a href="#高位进位加法" class="headerlink" title="高位进位加法"></a>高位进位加法</h2><p>考虑到遍历redis字典时可能出现扩容和缩容，scan的遍历顺序不是从数组的0位一直遍历到末尾，而是采用了高位进位加法来遍历。</p>
 <p>什么是高位进位加法？如图：</p>
-<img src="/2022/10/05/redis/redis-scan-add.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-scan-add.drawio.png" class="">
 
 
 
@@ -547,12 +547,12 @@
 <p>map扩容的时候，需要重新分配一个新的2倍大小的数组，然后将原来数组的元素全部rehash后取模，然后分配到新数组中。</p>
 <p>举个例子，原本的数组由8 slot扩容到16 slot，假如第3个 slot （011）存放有 元素 3 和 11， 因为长度变为原来的两倍了，所以原本放在 011 槽位的元素会被分配到 0011和 1011 两个槽位，1011对于原来的 011 来说，相当于在最高位+1。</p>
 <p>如图：</p>
-<img src="/2022/10/05/redis/redis-scan-2.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-scan-2.drawio.png" class="">
 
 
 
 <p>结合扩容和缩容前后的情况，如图：</p>
-<img src="/2022/10/05/redis/redis-scan.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-scan.drawio.png" class="">
 
 
 
@@ -645,7 +645,7 @@
 <p>服务器进程调用read 将数据取出，解析命令作出处理，然后将处理后的结果调用write，发送到服务器进程的socket的发送缓冲 send buffer中。</p>
 <p>然后同理，数据也是经过server的send buffer –&gt; server的协议栈 –&gt; server的网卡 –&gt; 网络 –&gt; client的网卡 –&gt; client的协议栈 –&gt; client的socket的recv buffer；</p>
 <p>client 进程调用 read 读出 socket中的数据，这一条命令的处理才算完成。对于client来说，真正耗时的是网络io和数据传输，写入到sendbuffer中并不耗时间。</p>
-<img src="/2022/10/05/redis/redis-net-1.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-net-1.drawio.png" class="">
 
 
 
@@ -668,7 +668,7 @@
 <li>epoll_wait 获取事件，根据参数的不同，可以是阻塞，非阻塞，有限等待等方式。</li>
 </ul>
 <p>大致如下：</p>
-<img src="/2022/10/05/redis/epoll-1.drawio.png" class="">
+<img src="/2022/12/28/redis/epoll-1.drawio.png" class="">
 
 <p>当网卡上收到数据包后，Linux 内核进行一系列的处理后把数据放到 socket 的接收队列。然后会检查是否有 epoll 在管理它，如果是则在 epoll 的就绪队列中插入一个元素。epoll_wait 的操作就非常的简单了，就是到 epoll 的就绪队列上来查询有没有事件发生就行了。</p>
 <p>读写事件是怎么被触发的？</p>
@@ -774,7 +774,7 @@
 <li>已经建立连接的tcp的fd的写事件：主要获取发送队列中还没发送完的数据，写入到fd中。</li>
 </ul>
 <p>根据以上，我们可以总结出整个结构图如下：</p>
-<img src="/2022/10/05/redis/redis-netio-1.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-netio-1.drawio.png" class="">
 
 
 
@@ -802,7 +802,7 @@
 <p>AOF和RDB的持久化都是fork出一个子进程来进行持久化的。而为什么能这么做，主要是用到操作系统一个写时复制的机制</p>
 <h2 id="写时复制"><a href="#写时复制" class="headerlink" title="写时复制"></a>写时复制</h2><p>写时复制是什么？父进程刚fork出子进程的时候，父进程和子进程的数据段和代码段是一样的。而且操作系统虽然让两者看起来都有自己的数据段，但是实际上他们各自的页表的物理页指向的是同一份。当父进程修改数据时，操作系统才会把这一页物理页换成新的物理页。而子进程只做持久化，不会去修改业务数据，子进程的数据还是在fork那一刻的整个数据状态。相当于父进程fork的时候的整个内存数据的快照。</p>
 <p>如图：</p>
-<img src="/2022/10/05/redis/copy-on-write-1.drawio.png" class="">
+<img src="/2022/12/28/redis/copy-on-write-1.drawio.png" class="">
 
 
 
@@ -854,7 +854,7 @@
 <p>每次RDB都会把当前的快照持久化下来，同时在RDB的时候AOF重写开始记录。</p>
 <p>在redis重启的时候，先加载RDB，在重放AOF。</p>
 <p>在这里，AOF日志不再是全量日志，而是在RDB开始到下一次RDB开始之间的增量日志。如下图：</p>
-<img src="/2022/10/05/redis/redis-rdb-aof.drawio.png" class="">
+<img src="/2022/12/28/redis/redis-rdb-aof.drawio.png" class="">
 
 
 
@@ -975,7 +975,7 @@
 
 
 <p>各数据结构关系如下：</p>
-<img src="/2022/10/05/redis/redis-dict-2.png" class="">
+<img src="/2022/12/28/redis/redis-dict-2.png" class="">
 
 
 
@@ -1005,7 +1005,7 @@
 
 <p>结果输出是8</p>
 <p>对应内存的分配：</p>
-<img src="/2022/10/05/redis/alloc-1.png" class="">
+<img src="/2022/12/28/redis/alloc-1.png" class="">
 
 
 
@@ -1015,7 +1015,7 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">attribute__</span>((<span class="title">packed</span>)) <span class="title">test2</span>  &#123;</span></span><br><span class="line">    <span class="type">char</span> a;</span><br><span class="line">    <span class="type">int</span> b;</span><br><span class="line"> &#125; test2;</span><br><span class="line"> </span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">     <span class="built_in">printf</span>(<span class="string">&quot;%lu\n&quot;</span>, <span class="keyword">sizeof</span>(test2));</span><br><span class="line">     <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>这时打印的结果是 5（1 个字节 char + 4 字节 int）。</p>
-<img src="/2022/10/05/redis/alloc-2.png" class="">
+<img src="/2022/12/28/redis/alloc-2.png" class="">
 
 
 
@@ -1026,7 +1026,7 @@
 
 
 <p>结构如下图：</p>
-<img src="/2022/10/05/redis/redis-linklist.png" class="">
+<img src="/2022/12/28/redis/redis-linklist.png" class="">
 
 
 
@@ -1050,7 +1050,7 @@
 
 <p>dictEntry 结构里不仅包含指向键和值的指针，还包含了指向下一个哈希表节点的指针，这个指针可以将多个哈希值相同的键值对链接起来，以此来解决哈希冲突的问题。</p>
 <p>结构如下图：</p>
-<img src="/2022/10/05/redis/redis-hash-1.png" class="">
+<img src="/2022/12/28/redis/redis-hash-1.png" class="">
 
 
 
@@ -1068,10 +1068,10 @@
 <p>整数集合升级的过程不会重新分配一个新类型的数组，而是在原本的数组上扩展空间，然后在将每个元素按间隔类型大小分割，如果 encoding 属性值为 INTSET_ENC_INT16，则每个元素的间隔就是 16 位。</p>
 <p>举个例子，假设有一个整数集合里有 3 个类型为 int16_t 的元素。</p>
 <p>现在，往这个整数集合中加入一个新元素 65535，这个新元素需要用 int32_t 类型来保存，所以整数集合要进行升级操作，首先需要为 contents 数组扩容，<strong>在原本空间的大小之上再扩容多 80 位（4x32-3x16&#x3D;80），这样就能保存下 4 个类型为 int32_t 的元素</strong>。</p>
-<img src="/2022/10/05/redis/redis-intset-1.png" class="">
+<img src="/2022/12/28/redis/redis-intset-1.png" class="">
 
 <p>扩容完 contents 数组空间大小后，需要将之前的三个元素转换为 int32_t 类型，并将转换后的元素放置到正确的位上面，并且需要维持底层数组的有序性不变，整个转换过程如下：</p>
-<img src="/2022/10/05/redis/redis-intset-2.png" class="">
+<img src="/2022/12/28/redis/redis-intset-2.png" class="">
 
 
 
@@ -1090,7 +1090,7 @@
 
 
 
-<img src="/2022/10/05/redis/redis-quicklist.png" class="">
+<img src="/2022/12/28/redis/redis-quicklist.png" class="">
 
 
 
@@ -1117,13 +1117,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2022/10/02/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="prev" title="分布式事务">
-      <i class="fa fa-chevron-left"></i> 分布式事务
+    <a href="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/" rel="prev" title="分布式协议">
+      <i class="fa fa-chevron-left"></i> 分布式协议
     </a></div>
-      <div class="post-nav-item">
-    <a href="/2022/10/07/%E5%88%86%E5%B8%83%E5%BC%8F%E8%B0%83%E7%94%A8-%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" rel="next" title="服务发现">
-      服务发现 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     

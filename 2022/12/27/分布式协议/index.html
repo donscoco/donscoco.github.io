@@ -25,33 +25,33 @@
   <meta name="description" content="概念 强一致性：在任意时刻，所有节点中的数据是一样的。 弱一致性：数据更新后，如果能容忍后续的访问只能访问到部分或者全部访问不到 最终一致性：不保证在任意时刻任意节点上的同一份数据都是相同的，但节点间的数据会最终达到一致状态。 线性一致性：&#x3D;强一致性&#x3D;原子一致性&#x3D;cap理论中的c 数字签名：非对称加密中，使用私钥加密，而别人只能通过公钥检查确认是否是配对的私钥加密的（">
 <meta property="og:type" content="article">
 <meta property="og:title" content="分布式协议">
-<meta property="og:url" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/index.html">
+<meta property="og:url" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/index.html">
 <meta property="og:site_name" content="donscoco">
 <meta property="og:description" content="概念 强一致性：在任意时刻，所有节点中的数据是一样的。 弱一致性：数据更新后，如果能容忍后续的访问只能访问到部分或者全部访问不到 最终一致性：不保证在任意时刻任意节点上的同一份数据都是相同的，但节点间的数据会最终达到一致状态。 线性一致性：&#x3D;强一致性&#x3D;原子一致性&#x3D;cap理论中的c 数字签名：非对称加密中，使用私钥加密，而别人只能通过公钥检查确认是否是配对的私钥加密的（">
 <meta property="og:locale">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-3.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-4.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-2.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-%E8%A7%92%E8%89%B2%E8%BD%AC%E6%8D%A2%E5%9B%BE.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-log-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-design.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-2.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/quorumNWR-1.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash-partition.drawio.png">
-<meta property="og:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash.drawio.png">
-<meta property="article:published_time" content="2022-11-26T16:00:00.000Z">
-<meta property="article:modified_time" content="2023-01-08T20:03:15.265Z">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-3.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-4.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-2.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-%E8%A7%92%E8%89%B2%E8%BD%AC%E6%8D%A2%E5%9B%BE.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-log-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-design.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-2.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/quorumNWR-1.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash-partition.drawio.png">
+<meta property="og:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash.drawio.png">
+<meta property="article:published_time" content="2022-12-26T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-08T22:01:22.216Z">
 <meta property="article:author" content="donscoco">
 <meta property="article:tag" content="学习笔记">
 <meta property="article:tag" content="分布式">
 <meta property="article:tag" content="分布式共识">
 <meta property="article:tag" content="分布式一致性">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-1.drawio.png">
+<meta name="twitter:image" content="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-1.drawio.png">
 
-<link rel="canonical" href="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/">
+<link rel="canonical" href="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/">
 
 
 <script id="page-configurations">
@@ -207,7 +207,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
-    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/">
+    <link itemprop="mainEntityOfPage" href="https://donscoco.github.io/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/Misaka.jpg">
@@ -230,14 +230,14 @@
               </span>
               <span class="post-meta-item-text">Posted on</span>
 
-              <time title="Created: 2022-11-27 00:00:00" itemprop="dateCreated datePublished" datetime="2022-11-27T00:00:00+08:00">2022-11-27</time>
+              <time title="Created: 2022-12-27 00:00:00" itemprop="dateCreated datePublished" datetime="2022-12-27T00:00:00+08:00">2022-12-27</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2023-01-09 04:03:15" itemprop="dateModified" datetime="2023-01-09T04:03:15+08:00">2023-01-09</time>
+                <time title="Modified: 2023-01-09 06:01:22" itemprop="dateModified" datetime="2023-01-09T06:01:22+08:00">2023-01-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -333,7 +333,7 @@
 </ul>
 <p>当提议者收到大多数接受者的写入响应时，就同步给学习者，学习者同步给所有的接受者和备份等操作。</p>
 <p>流程如下：</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-1.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-1.drawio.png" class="">
 
 
 
@@ -346,21 +346,21 @@
 </ol>
 <p><strong>proposer1和proposer2串行执行</strong></p>
 <p>proposer1提议结束后，proposer2发起提议</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-3.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-3.drawio.png" class="">
 
 
 
 <p><strong>proposer 和 acceptor 通信失败情况</strong></p>
 <p>如果其中的某个Acceptor没响应怎么处理？</p>
 <p>未超过半数，那么Proposer会递增版本号重新发起提议</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-4.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-4.drawio.png" class="">
 
 
 
 <p><strong>proposer1和proposer2交错执行</strong></p>
 <p>如果只写成功了一个accpetor又怎么处理，写成功两个呢？如果多个proposer并发写会导致accpetor写成不同值吗？</p>
 <p>proposer1和proposer2同时发起提议</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-2.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/paxos-2.drawio.png" class="">
 
 
 
@@ -414,12 +414,12 @@
 <h3 id="关于选举领导者"><a href="#关于选举领导者" class="headerlink" title="关于选举领导者"></a>关于选举领导者</h3><p>1.每个节点初始化都是follower，并周期性检查leader的心跳，如果跟随者的定期检查中发现领导者的心跳超时了。可以认为领导者已经死了（宕机）。自己成为候选人，向其他人发起投票选举（让别人投自己为领导者）。赢得大多数选票的候选人人成为领导者。</p>
 <p>2.领导者周期性地向所有跟随者发送心跳，用于通知别人自己是领导者和通知别人自己还活着。</p>
 <p>3.每个节点提供选举接口，当收到候选人的投票请求的时候，根据自身情况投出自己的一票。每个节点对于一个任期（版本）只能投一票。（这个根据自身情况是看自己是否已经投票了。和检查候选人的日志是否比自己的日志更加新。拥有最新日志的候选人成为领导者才是健康的。和投票的版本号大小。）</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-%E8%A7%92%E8%89%B2%E8%BD%AC%E6%8D%A2%E5%9B%BE.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-%E8%A7%92%E8%89%B2%E8%BD%AC%E6%8D%A2%E5%9B%BE.drawio.png" class="">
 
 
 
 <h3 id="关于日志复制"><a href="#关于日志复制" class="headerlink" title="关于日志复制"></a>关于日志复制</h3><p>领导者处理客户端请求，写入本地日志后，将日志项提交到本地状态机，同步给其他节点（也可以异步同步给其他节点，看请求设置的安全等级。）等待其他的跟随者节点同步成功后。返回客户端请求。异步可以放在心跳中同步给跟随者。</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-log-1.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-log-1.drawio.png" class="">
 
 
 
@@ -451,7 +451,7 @@
 </li>
 </ul>
 <p>架构图如下：</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-design.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/raft-design.drawio.png" class="">
 
 
 
@@ -479,11 +479,11 @@
 <p>因为反墒通讯成本会很高。所以一般是先进行校验和对比，不符才进行反墒。</p>
 <p>gossip 适合在节点不多，节点动态变化的分布式系统。</p>
 <p>如何实现最终一致性呢？反熵</p>
-<h2 id="共识协商过程-2"><a href="#共识协商过程-2" class="headerlink" title="共识协商过程"></a>共识协商过程</h2><h3 id="更新数据"><a href="#更新数据" class="headerlink" title="更新数据"></a>更新数据</h3><img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-1.drawio.png" class="">
+<h2 id="共识协商过程-2"><a href="#共识协商过程-2" class="headerlink" title="共识协商过程"></a>共识协商过程</h2><h3 id="更新数据"><a href="#更新数据" class="headerlink" title="更新数据"></a>更新数据</h3><img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-1.drawio.png" class="">
 
 
 
-<h3 id="加入节点"><a href="#加入节点" class="headerlink" title="加入节点"></a>加入节点</h3><img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-2.drawio.png" class="">
+<h3 id="加入节点"><a href="#加入节点" class="headerlink" title="加入节点"></a>加入节点</h3><img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/gossip-2.drawio.png" class="">
 
 
 
@@ -529,7 +529,7 @@
 <h2 id="共识协商过程-3"><a href="#共识协商过程-3" class="headerlink" title="共识协商过程"></a>共识协商过程</h2><p>写入的时候，设置W&gt;1&#x2F;2N,要求写入超过一半节点成功才算成功写入</p>
 <p>读取的时候，设置R&gt;1&#x2F;2N,要起读取超过一半节点成功，然后在这1&#x2F;2N个节点中取最新的数据。</p>
 <p>因为写入的时候是大于一半的节点，读取的时候大于一半的节点，所以读取必然会读取到至少一个是最新的节点。</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/quorumNWR-1.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/quorumNWR-1.drawio.png" class="">
 
 
 
@@ -542,13 +542,13 @@
 
 <h1 id="一致性哈希算法（Consistent-Hashing）"><a href="#一致性哈希算法（Consistent-Hashing）" class="headerlink" title="一致性哈希算法（Consistent Hashing）"></a>一致性哈希算法（Consistent Hashing）</h1><h2 id="概念-5"><a href="#概念-5" class="headerlink" title="概念"></a>概念</h2><p>分片partition：</p>
 <p>分片思想，例如访问一个map，对这个map读写每次都需要等待锁，而每个线程读写的key不一样，这样我们可以参考malloc内存分配的思想，将数据进行分片，这样可以保证在各个线程访问不同的key时，只要这个key不是落到同一个分片上，就可以和其他分片并发地处理内存数据，如图：</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash-partition.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash-partition.drawio.png" class="">
 
 <p>相同的道理，在分布式集群中，我们可以对数据进行分片，每个服务节点代表一个分片。在访问时根据hash确定自己要访问的节点，这样集群服务能有更好的吞吐量。通过哈希算法，每个 key 都可以寻址到对应的服务器。但如果节点数量发生变化，基于新的服务器数量来执行哈希算法的时候，就会出现路由寻址失败的情况。</p>
 <p>例如一个 key,hash后得到 891568578,如果现在是5个节点，891568578%5&#x3D;3，将这个key的数据存放到 第3个节点。第二次访问的时候，集群扩容为10个节点，891568578%10&#x3D;8，而原来的数据是存放在第3个节点上的。</p>
 <p>扩容后需要做数据迁移，而直接%的这种方式，迁移成本很高。而一致性hash就是用来解决这个问题的。</p>
 <p>节点在hash后，对应到 [0,2^32-1]，而key在hash后，就往后找第一个大于自己的节点。这个节点就是处理的节点。如图</p>
-<img src="/2022/11/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash.drawio.png" class="">
+<img src="/2022/12/27/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%AE%AE/consistent-hash.drawio.png" class="">
 
 
 
@@ -599,12 +599,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2022/11/03/%E7%AE%97%E6%B3%95-%E6%A8%A1%E7%89%88%E6%80%9D%E7%BB%B4/" rel="prev" title="算法-模版思维">
-      <i class="fa fa-chevron-left"></i> 算法-模版思维
+    <a href="/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="prev" title="分布式协调-分布式锁">
+      <i class="fa fa-chevron-left"></i> 分布式协调-分布式锁
     </a></div>
       <div class="post-nav-item">
-    <a href="/2022/12/03/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83-%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" rel="next" title="分布式协调-分布式锁">
-      分布式协调-分布式锁 <i class="fa fa-chevron-right"></i>
+    <a href="/2022/12/28/redis/" rel="next" title="redis">
+      redis <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
